@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class NaucniRad extends Model
+{
+    /** @use HasFactory<\Database\Factories\NaucniRadFactory> */
+    use HasFactory;
+
+    protected $fillable = ['naslov','abstrakt', 'godina', 'grupaId', 'verzija'];
+
+    protected $primaryKey = 'NRID';
+    public function oblasti() {
+        return $this->belongsToMany(Oblast::class, 'OblastiRada', 'NRID', 'oblastId');
+    }
+
+
+}
