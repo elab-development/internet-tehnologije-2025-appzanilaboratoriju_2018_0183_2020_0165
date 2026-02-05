@@ -9,7 +9,8 @@ class Uloga extends Model
 {
     /** @use HasFactory<\Database\Factories\UlogaFactory> */
     use HasFactory;
-
+    protected $table = 'Uloga';
+     
     protected $primaryKey = 'UlogaID';
 
     protected $fillable = ['Naziv'];

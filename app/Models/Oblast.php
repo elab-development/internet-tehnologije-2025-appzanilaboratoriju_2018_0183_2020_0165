@@ -9,6 +9,7 @@ class Oblast extends Model
 {
     /** @use HasFactory<\Database\Factories\OblastFactory> */
     use HasFactory;
+    protected $table = 'Oblast';
 
     protected $fillable = ['naziv'];
 

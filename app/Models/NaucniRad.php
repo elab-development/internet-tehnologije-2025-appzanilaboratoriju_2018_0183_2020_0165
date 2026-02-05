@@ -9,7 +9,7 @@ class NaucniRad extends Model
 {
     /** @use HasFactory<\Database\Factories\NaucniRadFactory> */
     use HasFactory;
-
+    protected $table = 'NaucniRad';
     protected $fillable = ['naslov','abstrakt', 'godina', 'grupaId', 'verzija'];
 
     protected $primaryKey = 'NRID';

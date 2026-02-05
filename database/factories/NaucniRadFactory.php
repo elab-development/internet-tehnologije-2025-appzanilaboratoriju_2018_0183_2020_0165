@@ -17,7 +17,11 @@ class NaucniRadFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'naslov' => $this->faker->sentence(6),
+            'abstrakt' => $this->faker->paragraph(3),
+            'godina' => $this->faker->year(),
+            'grupaId' => $this->faker->numberBetween(1, 100),
+            'verzija' => $this->faker->randomElement(['1.0','2.0','3.0']),
         ];
     }
 }

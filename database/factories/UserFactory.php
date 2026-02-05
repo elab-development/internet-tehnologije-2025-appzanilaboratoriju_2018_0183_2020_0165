@@ -5,7 +5,8 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-
+use App\Models\User;
+use App\Models\Uloga;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
  */
@@ -24,12 +25,24 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'ImePrezime' => $this->faker->name(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'password' => 'password',
+            'Biografija' => $this->faker->paragraph(2),
         ];
+    }
+
+public function configure()
+    {
+        return $this->afterCreating(function (User $user) {
+            $ids = Uloga::pluck('UlogaID')->toArray(); // uzmi sve ID-eve
+            if (!empty($ids)) {
+                shuffle($ids); // random redosled
+                $user->uloge()->attach(array_slice($ids, 0, rand(1, count($ids))), [
+                    'Datum' => now()
+                ]);
+            }
+        });
     }
 
     /**
