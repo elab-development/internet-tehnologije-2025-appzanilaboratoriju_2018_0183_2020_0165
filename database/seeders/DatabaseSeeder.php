@@ -15,8 +15,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-         User::factory(10)->create();
-
+        
+        
        
 
         $this->call([
@@ -24,5 +24,6 @@ class DatabaseSeeder extends Seeder
             OblastSeeder::class,
             NaucniRadSeeder::class, // posle šifarnika
         ]);
+    User::factory(10)->create();
     }
 }
