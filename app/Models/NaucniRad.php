@@ -17,5 +17,30 @@ class NaucniRad extends Model
         return $this->belongsToMany(Oblast::class, 'OblastiRada', 'NRID', 'oblastId');
     }
 
+    
+    public function status()
+    {
+        return $this->belongsTo(Status::class, 'StatusID');
+    }
+
+    public function citira()
+    {
+        return $this->belongsToMany(
+            NaucniRad::class, 
+            'reference',
+            'RadID',
+            'CitiraniRadID' 
+        );
+    }
+
+    public function citiranOdStrane()
+{
+    return $this->belongsToMany(
+            NaucniRad::class, 
+            'reference', 
+            'CitiraniRadID', 
+            'RadID'
+        );
+    }
 
 }
