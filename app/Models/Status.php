@@ -18,4 +18,10 @@ class Status extends Model
     {
         return $this->hasMany(NaucniRad::class, 'StatusID');
     }
+
+    public function stavkeRecenzije()
+    {
+        return $this->hasMany(StavkaRecenzije::class, 'StatusID', 'StatusID');
+    }
+
 }
