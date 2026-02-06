@@ -15,15 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        
-        
-       
-
         $this->call([
+            StatusSeeder::class,
             UlogaSeeder::class,
             OblastSeeder::class,
             NaucniRadSeeder::class, // posle šifarnika
         ]);
-    User::factory(10)->create();
+        User::factory(10)->create();
     }
 }

@@ -24,6 +24,8 @@ class OblastSeeder extends Seeder
 
         foreach ($oblasti as $oblast) {
             Oblast::updateOrCreate(['naziv' => $oblast['naziv']], $oblast);
+            //Trazi u tabeli Oblast red gde je naziv = $oblast['naziv'], ako nadje updateuje
+            //ako ne nadje kreira novi.
         }
     }
 }

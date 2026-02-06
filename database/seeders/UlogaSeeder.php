@@ -13,6 +13,7 @@ class UlogaSeeder extends Seeder
      */
     public function run(): void
     {
+        //U našem sistemu imamo tri ulog (Postoji opcija da dodamo posetioca)
         $uloge = [
             ['naziv' => 'Administrator'],
             ['naziv' => 'Recenzent'],
