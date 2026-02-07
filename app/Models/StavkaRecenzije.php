@@ -10,7 +10,7 @@ class StavkaRecenzije extends Model
     /** @use HasFactory<\Database\Factories\StavkaRecenzijeFactory> */
     use HasFactory;
 
-    protected $table = 'stavka_recenzije';
+    protected $table = 'StavkaRecenzije';
     protected $primaryKey = 'StavkaID';
 
     // Samo Komentar i ključevi, jer samo to postoji na slici

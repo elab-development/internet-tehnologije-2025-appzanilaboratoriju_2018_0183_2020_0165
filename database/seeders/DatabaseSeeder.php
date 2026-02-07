@@ -13,14 +13,21 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
-    public function run(): void
+  public function run(): void
     {
         $this->call([
+            // 1️⃣ Šifarnici
             StatusSeeder::class,
             UlogaSeeder::class,
             OblastSeeder::class,
-            NaucniRadSeeder::class, // posle šifarnika
+
+            // 2️⃣ Glavni entiteti
+            UserSeeder::class,
+            NaucniRadSeeder::class,
+
+            // 3️⃣ Agregacije i slabi objekti
+            RecenzijaSeeder::class,
+            StavkaRecenzijeSeeder::class,
         ]);
-        User::factory(10)->create();
     }
 }
