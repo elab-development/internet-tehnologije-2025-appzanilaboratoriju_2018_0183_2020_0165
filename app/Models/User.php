@@ -55,9 +55,19 @@ protected $fillable = [
         ];
     }
 
-    public function uloge()
-        {
+    public function uloge() {
             return $this->belongsToMany(Uloga::class, 'DodelaUloge', 'ZapID', 'UlogaID')
                         ->withPivot('Datum');
-        }
+    }
+
+    public function naucniRadovi()
+    {
+        return $this->belongsToMany(
+            NaucniRad::class,
+            'Autorstvo',
+            'ZapID',
+            'NRID'
+        );
+    }
+
 }

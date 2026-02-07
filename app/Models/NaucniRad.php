@@ -43,4 +43,14 @@ class NaucniRad extends Model
         );
     }
 
+    public function autori()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'Autorstvo',
+            'NRID',
+            'ZapID'
+        );
+    }
+
 }

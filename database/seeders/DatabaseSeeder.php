@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             // 3️⃣ Agregacije i slabi objekti
             RecenzijaSeeder::class,
             StavkaRecenzijeSeeder::class,
+            AutorstvoSeeder::class,
         ]);
     }
 }
