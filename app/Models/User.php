@@ -57,7 +57,7 @@ protected $fillable = [
 
     public function uloge()
         {
-            return $this->belongsToMany(Uloga::class, 'dodela_uloge', 'ZapID', 'UlogaID')
+            return $this->belongsToMany(Uloga::class, 'DodelaUloge', 'ZapID', 'UlogaID')
                         ->withPivot('Datum');
         }
 }
