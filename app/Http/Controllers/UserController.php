@@ -36,11 +36,24 @@ class UserController extends Controller
             'email' => 'required|email|unique:korisnik,email',
             'password' => 'required|min:6',
             'Biografija' => 'nullable|string',
+            'uloga_id' => 'required|exists:uloga,UlogaID' // Moraš znati koju ulogu dodeljuješ
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
 
-        return User::create($validated);
+        // 1. Kreiraj korisnika
+        $korisnik = User::create($validated);
+
+        // 2. Poveži ga sa ulogom u tabeli DodelaUloge
+        // Ovo će automatski popuniti ZapID i UlogaID
+        // UserController.php oko linije 49
+        $korisnik->uloge()->attach($request->uloga_id, [
+            'Datum' => now() // Ovo šalje trenutni datum i vreme
+        ]);
+        return response()->json([
+            'message' => 'Korisnik uspešno kreiran i uloga dodeljena',
+            'user' => $korisnik
+        ], 201);
     }
 
     /**

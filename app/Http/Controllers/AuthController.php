@@ -2,25 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Korisnik;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
+    // REGISTRACIJA KORISNIKA
+    public function register(Request $request)
+    {
+        $fields = $request->validate([
+            'ImePrezime' => 'required|string|max:255',
+            'email' => 'required|string|unique:korisnik,email', // Provera u tabeli korisnik
+            'password' => 'required|string|min:6|confirmed',
+            'Biografija' => 'nullable|string'
+        ]);
+
+        $korisnik = User::create([
+            'ImePrezime' => $fields['ImePrezime'],
+            'email' => $fields['email'],
+            'password' => Hash::make($fields['password']),
+            'Biografija' => $fields['Biografija'] ?? null,
+        ]);
+
+        // Odmah generišemo token nakon registracije
+        $token = $korisnik->createToken('myapptoken')->plainTextToken;
+
+        return response([
+            'user' => $korisnik,
+            'token' => $token
+        ], 201);
+    }
+
+    // LOGIN KORISNIKA
     public function login(Request $request)
     {
-       //validacija unetih podataka
         $fields = $request->validate([
             'email' => 'required|string',
             'password' => 'required|string',
-            'uloga_id' => 'required|exists:uloga,id'
+            'uloga_id' => 'required|exists:uloga,UlogaID' // Validacija uloge iz tvoje baze
         ]);
 
-
-        $korisnik = Korisnik::where('email', $fields['email'])->first();
-
+        $korisnik = User::where('email', $fields['email'])->first();
 
         if (!$korisnik || !Hash::check($fields['password'], $korisnik->password)) {
             return response([
@@ -28,29 +52,31 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // provera da li ima tu ulogu
-        $imaUlogu = $korisnik->uloge()->where('uloga.id', $fields['uloga_id'])->exists();
+        $imaUlogu = $korisnik->uloge()->where('Uloga.UlogaID', $fields['uloga_id'])->exists();
 
         if (!$imaUlogu) {
             return response([
-                'message' => 'Nemate mogucnost da se ulogujete u datu ulogu'
+                'message' => 'Nemate dozvolu da se ulogujete sa ovom ulogom.'
             ], 403);
         }
-
 
         $token = $korisnik->createToken('myapptoken')->plainTextToken;
 
         return response([
-            'user' => $korisnik,
+            'korisnik' => $korisnik,
             'token' => $token,
-            'current_role' => $fields['uloga_id']
+            'trenutna_uloga' => $fields['uloga_id']
         ], 200);
     }
 
+    // LOGOUT KORISNIKA
     public function logout(Request $request)
     {
+        // Brišemo trenutni token kojim je korisnik pristupio
         $request->user()->currentAccessToken()->delete();
-        return ['message' => 'Izlogovan'];
-    }
 
+        return response([
+            'message' => 'Uspešno ste se izlogovali.'
+        ], 200);
+    }
 }
