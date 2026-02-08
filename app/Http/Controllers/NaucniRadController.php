@@ -24,39 +24,31 @@ class NaucniRadController extends Controller
      */
     public function store(Request $request)
     {
-      // Validacija
-        $validator = Validator::make($request->all(), [
-            'naslov'   => 'required|string|max:255',
+    
+        $validatedData = $request->validate([
+            'naslov' => 'required|string|max:255',
             'abstrakt' => 'required|string',
-            'godina'   => 'required|integer',
-            'grupaId'  => 'nullable|integer',
-            'verzija'  => 'nullable|integer',
-            'StatusID' => 'required|exists:status,StatusID', // FK
-            'oblasti'  => 'array', // niz ID-jeva oblasti
-            'oblasti.*'=> 'exists:oblast,oblastId',
-            'autori'   => 'array', // niz ID-jeva korisnika
-            'autori.*' => 'exists:korisnik,ZapID',
+            'godina' => 'required|integer',
+            'StatusID' => 'required|exists:status,StatusID',
+            'grupaId' => 'required|integer',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
+        
+        $naucniRad = NaucniRad::create($validatedData);
 
-        // Kreiranje rada
-        $rad = NaucniRad::create($validator->validated());
-
-        // Pivot tabele
+        
         if ($request->has('oblasti')) {
-            $rad->oblasti()->sync($request->oblasti);
-        }
-        if ($request->has('autori')) {
-            $rad->autori()->sync($request->autori);
+            $naucniRad->oblasti()->attach($request->oblasti);
         }
 
-        return response()->json($rad->load(['status', 'oblasti', 'autori']), 201);
+     
+        $naucniRad->load(['oblasti', 'status', 'autori']);
+
+        
+        return response()->json([
+            'poruka' => 'Rad uspešno dodat!',
+            'podaci' => new NaucniRadResource($naucniRad)
+        ], 201);
     }
 
     /**
@@ -116,6 +108,8 @@ class NaucniRadController extends Controller
         $rad = NaucniRad::findOrFail($id);
         $rad->delete();
 
-        return response()->json(['message' => 'Rad obrisan']);
+        return response()->json([
+            'poruka' => 'Naučni rad je trajno uklonjen iz baze.'
+        ], 200);
     }
 }

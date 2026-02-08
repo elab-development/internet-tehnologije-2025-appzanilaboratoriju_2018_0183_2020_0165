@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-
+use App\Http\Resources\UserResource;
 
 class UserController extends Controller
 {
@@ -15,7 +15,8 @@ class UserController extends Controller
      */
     public function index()
     {
-        return User::with('uloge')->get();
+        $users = User::with('uloge')->get();
+        return UserResource::collection($users);
     }
 
     /**
@@ -36,23 +37,19 @@ class UserController extends Controller
             'email' => 'required|email|unique:korisnik,email',
             'password' => 'required|min:6',
             'Biografija' => 'nullable|string',
-            'uloga_id' => 'required|exists:uloga,UlogaID' // Moraš znati koju ulogu dodeljuješ
+            'uloga_id' => 'required|exists:uloga,UlogaID'
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
 
-        // 1. Kreiraj korisnika
+    
         $korisnik = User::create($validated);
 
-        // 2. Poveži ga sa ulogom u tabeli DodelaUloge
-        // Ovo će automatski popuniti ZapID i UlogaID
-        // UserController.php oko linije 49
-        $korisnik->uloge()->attach($request->uloga_id, [
-            'Datum' => now() // Ovo šalje trenutni datum i vreme
-        ]);
+        $korisnik->load('uloge');
+    
         return response()->json([
             'message' => 'Korisnik uspešno kreiran i uloga dodeljena',
-            'user' => $korisnik
+            'user' => new UserResource($korisnik)
         ], 201);
     }
 
@@ -81,28 +78,25 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'ImePrezime' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:korisnik,email,' . $user->ZapID . ',ZapID',
-            'password' => 'nullable|min:6',
             'Biografija' => 'nullable|string',
         ]);
 
-        if(isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
-        }
-
         $user->update($validated);
 
-        return $user;
-    }
+        return response()->json([
+            'poruka' => 'Profil uspešno ažuriran!',
+            'podaci' => new UserResource($user)
+        ], 200);
+        }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        $user = User::findOrFail($id);
-        $user->delete();
+        /**
+         * Remove the specified resource from storage.
+         */
+        public function destroy(string $id)
+        {
+            $user = User::findOrFail($id);
+            $user->delete();
 
-        return response()->json(['message' => 'Korinsik obrisan']);
+            return response()->json(['message' => 'Korinsik obrisan']);
     }
 }
