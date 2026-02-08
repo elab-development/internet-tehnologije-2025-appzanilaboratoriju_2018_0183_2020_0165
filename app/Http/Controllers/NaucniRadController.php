@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\NaucniRad;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Resources\NaucniRadResource;
 
 class NaucniRadController extends Controller
 {
@@ -14,8 +15,8 @@ class NaucniRadController extends Controller
      */
     public function index()
     {
-        return NaucniRad::with(['oblasti', 'status', 'autori'])->get();
-
+        $radovi = NaucniRad::with(['oblasti', 'status', 'autori'])->get();
+        return NaucniRadResource::collection($radovi);
     }
 
     /**
@@ -63,7 +64,8 @@ class NaucniRadController extends Controller
      */
     public function show($id)
     {
-        return NaucniRad::with(['status', 'oblasti', 'autori'])->findOrFail($id);
+        $rad = NaucniRad::with(['oblasti', 'status', 'autori'])->findOrFail($id);
+        return new NaucniRadResource($rad);
     }
 
     /**
