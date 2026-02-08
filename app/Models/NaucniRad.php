@@ -10,13 +10,18 @@ class NaucniRad extends Model
     /** @use HasFactory<\Database\Factories\NaucniRadFactory> */
     use HasFactory;
     protected $table = 'NaucniRad';
-    protected $fillable = ['naslov','abstrakt', 'godina', 'grupaId', 'verzija'];
+    protected $fillable = ['naslov','abstrakt', 'godina', 'grupaId', 'verzija', 'StatusID'];
 
     protected $primaryKey = 'NRID';
+    
     public function oblasti() {
-        return $this->belongsToMany(Oblast::class, 'OblastiRada', 'NRID', 'oblastId');
+        return $this->belongsToMany(
+            Oblast::class,    // model
+            'OblastiRada',    // pivot tabela
+            'NRID',           // FK NaucniRad u pivot tabeli
+            'oblastId'        // FK Oblast u pivot tabeli
+        );
     }
-
     
     public function status()
     {
