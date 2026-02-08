@@ -25,7 +25,7 @@ class NaucniRadFactory extends Factory
             'godina'   => $this->faker->numberBetween(2015, 2025),
             'grupaId'  => null,   // namerno null, setuje se kroz state
             'verzija'  => 1,
-            'StatusId' => Status::inRandomOrder()->first()->StatusID,
+            'StatusID' => Status::inRandomOrder()->first()->StatusID,
         ];
     }
 
