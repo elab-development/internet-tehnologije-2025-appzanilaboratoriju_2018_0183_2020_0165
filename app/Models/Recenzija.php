@@ -12,7 +12,7 @@ class Recenzija extends Model
 
     protected $table = 'recenzija';
     protected $primaryKey = 'RecenzijaID';
-    protected $fillable = ['Datum', 'ZapID', 'RadID'];
+    protected $fillable = ['Datum', 'ZapID', 'NRID'];
 
 
     public function stavke()
@@ -29,6 +29,6 @@ class Recenzija extends Model
     
     public function naucniRad()
     {
-        return $this->belongsTo(NaucniRad::class, 'RadID');
+        return $this->belongsTo(NaucniRad::class, 'NRID');
     }
 }
