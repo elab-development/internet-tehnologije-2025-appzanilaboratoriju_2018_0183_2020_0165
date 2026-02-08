@@ -6,6 +6,7 @@ use App\Http\Controllers\RecenzijaController;
 use App\Http\Controllers\StavkaRecenzijeController;
 use App\Http\Controllers\NaucniRadController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\OblastController;
 
 Route::apiResource('users', UserController::class);
 Route::apiResource('recenzije', RecenzijaController::class);
@@ -15,6 +16,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 }); // ovo je funkcija koju imaju samo ulogovani ljudi
+Route::apiResource('oblasti', OblastController::class);
 
 
 
