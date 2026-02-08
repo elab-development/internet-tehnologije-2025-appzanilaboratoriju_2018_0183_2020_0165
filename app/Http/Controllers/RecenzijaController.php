@@ -21,8 +21,9 @@ class RecenzijaController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'naucni_rad_id' => 'required',
-            'korisnik_id'   => 'required', // recenzent
+            'NRID' => 'required|exists:NaucniRad,NRID',
+            'ZapID' => 'required|exists:korisnik,ZapID',
+            'Datum' => 'sometimes|date',
         ]);
 
         $novaRecenzija = Recenzija::create($validatedData);
