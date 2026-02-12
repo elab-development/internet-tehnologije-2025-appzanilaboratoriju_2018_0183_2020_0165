@@ -22,7 +22,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('recenzije', RecenzijaController::class);
     Route::apiResource('stavke-recenzije', StavkaRecenzijeController::class);
-    Route::apiResource('oblasti', OblastController::class);
+    Route::apiResource('oblasti', OblastController::class); //ovde izmeniti da moze i neulogoan
+    //  korisnik da gleda oblasti
 
     Route::post('/logout', [AuthController::class, 'logout']);
 });

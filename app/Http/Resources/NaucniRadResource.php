@@ -18,8 +18,8 @@ class NaucniRadResource extends JsonResource
             'id' => $this->NRID,
             'naslov' => $this->naslov,
             'abstrakt' => $this->abstrakt,
+            'kljucneReci' => $this->kljucneReci,
             'godina' => $this->godina,
-
             'oblasti' => $this->oblasti->pluck('naziv'), 
             'status' => $this->status->Naziv,
             'autori' => $this->autori->pluck('ImePrezime'),

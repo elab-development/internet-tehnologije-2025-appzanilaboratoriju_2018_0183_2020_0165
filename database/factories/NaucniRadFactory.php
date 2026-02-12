@@ -16,16 +16,16 @@ class NaucniRadFactory extends Factory
      *
      * @return array<string, mixed>
      */
-
      public function definition(): array
     {
         return [
-            'naslov'   => $this->faker->sentence(6),
-            'abstrakt' => $this->faker->paragraph(4),
-            'godina'   => $this->faker->numberBetween(2015, 2025),
-            'grupaId'  => null,   // namerno null, setuje se kroz state
-            'verzija'  => 1,
-            'StatusID' => Status::inRandomOrder()->first()->StatusID,
+            'naslov'      => $this->faker->sentence(6),
+            'abstrakt'    => $this->faker->paragraph(4),
+            'kljucneReci' => implode(', ', $this->faker->words(3)), //implode je kao concat sa tim što ima separator
+            'godina'      => $this->faker->numberBetween(2015, 2025),
+            'grupaId'     => null,   // namerno null, setuje se kroz state
+            'verzija'     => 1,
+            'StatusID'    => Status::inRandomOrder()->first()->StatusID,
         ];
     }
 
@@ -48,7 +48,7 @@ class NaucniRadFactory extends Factory
         return $this->afterCreating(function ($rad) {
             $oblasti = Oblast::inRandomOrder()
                 ->limit(rand(1, 3))
-                ->pluck('oblastId'); // koristi pravi PK!
+                ->pluck('oblastId');
 
             $rad->oblasti()->attach($oblasti);
         });

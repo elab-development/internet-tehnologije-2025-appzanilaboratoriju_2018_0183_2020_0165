@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StavkaRecenzije; //spajanje sa modelom
+use App\Models\StavkaRecenzije; 
 use Illuminate\Http\Request;
 
 class StavkaRecenzijeController extends Controller
@@ -30,7 +30,7 @@ class StavkaRecenzijeController extends Controller
         $novaStavka = StavkaRecenzije::create($validatedData);
 
         return response()->json([
-            'message' => 'Ocena i komentar su uspešno sačuvani.',
+            'message' => 'Stavka je uspešno sačuvana',
             'data' => $novaStavka
         ], 201);
     }
@@ -48,7 +48,7 @@ class StavkaRecenzijeController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //ne pravimo, jer cuvamo istorijurecenzija
+        //ne pravimo, jer cuvamo istoriju recenzija
     }
 
     /**
@@ -56,6 +56,6 @@ class StavkaRecenzijeController extends Controller
      */
     public function destroy(string $id)
     {
-        //ne pravimo, jer cuvamo istorijurecenzija
+        //ne pravimo, jer cuvamo istoriju recenzija
     }
 }
