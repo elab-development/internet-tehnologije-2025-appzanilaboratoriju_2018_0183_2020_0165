@@ -13,9 +13,39 @@ class NaucniRadController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $radovi = NaucniRad::with(['oblasti', 'status', 'autori'])->get();
+        // Kreiramo osnovni upit sa svim potrebnim relacijama
+        $query = NaucniRad::with(['oblasti', 'status', 'autori']);
+
+        // Proveravamo da li je korisnik poslao parametar 'pretraga' u URL-u
+       if ($request->has('pretraga')) {
+        $pojam = $request->query('pretraga');
+
+        $query->where(function($q) use ($pojam) {
+            // 1. Pretraga po kolonama 'naslov' i 'kljucneReci' u samoj tabeli 'naucniRadovi'
+            $q->where('kljucneReci', 'LIKE', '%' . $pojam . '%')
+            ->orWhere('naslov', 'LIKE', '%' . $pojam . '%')
+            
+            // 2. Pretraga kroz relaciju 'oblasti', ovo je nastavak iste funkcije where
+            ->orWhereHas('oblasti', function($q2) use ($pojam) { // koristimo whereHas ako tražimo preko veze
+                $q2->where('naziv', 'LIKE', '%' . $pojam . '%');
+            })
+            
+            // 3. Pretraga kroz relaciju 'autori'
+            ->orWhereHas('autori', function($q3) use ($pojam) {
+                $q3->where('ImePrezime', 'LIKE', '%' . $pojam . '%');
+            });
+
+            /*Predlozi:
+                1. Vremenski opseg kao način pretrage (preko kolone godina)
+                2. Sortiranje
+            */
+        });
+    }
+
+        $radovi = $query->get();
+        
         return NaucniRadResource::collection($radovi);
     }
 
