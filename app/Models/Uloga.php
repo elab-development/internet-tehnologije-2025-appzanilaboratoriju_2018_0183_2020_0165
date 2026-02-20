@@ -15,8 +15,8 @@ class Uloga extends Model
 
     protected $fillable = ['Naziv'];
 
-        public function useri(){
-		return $this->belongsToMany(User::class, 'dodela_uloge', 'UlogaID', 'ZapID')->withPivot('Datum');
+    public function useri(){
+    return $this->belongsToMany(User::class, 'dodela_uloge', 'UlogaID', 'ZapID')->withPivot('Datum');
     }
 
     

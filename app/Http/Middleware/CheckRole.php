@@ -20,9 +20,7 @@ public function handle(Request $request, Closure $next, string $role): Response
             return response()->json(['message' => 'Niste prijavljeni.'], 401);
         }
 
-        // KLJUČNA LINIJA:
-        // 'uloge' -> naziv metode u tvom modelu Korisnik
-        // 'naziv_uloge' -> naziv kolone u tvojoj tabeli uloga
+
         $imaUlogu = $request->user()->uloge->contains('Naziv', $role);
 
         if (!$imaUlogu) {

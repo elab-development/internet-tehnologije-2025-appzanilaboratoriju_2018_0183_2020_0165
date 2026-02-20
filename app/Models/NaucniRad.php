@@ -39,13 +39,13 @@ class NaucniRad extends Model
     }
 
     public function citiranOdStrane()
-{
-    return $this->belongsToMany(
-            NaucniRad::class, 
-            'reference', 
-            'CitiraniRadID', 
-            'RadID'
-        );
+    {
+        return $this->belongsToMany(
+                NaucniRad::class, 
+                'reference', 
+                'CitiraniRadID', 
+                'RadID'
+            );
     }
 
     public function autori()
@@ -56,6 +56,11 @@ class NaucniRad extends Model
             'NRID',
             'ZapID'
         );
+    }
+
+    public function recenzije() // Promenjeno u množinu
+    {
+        return $this->hasMany(Recenzija::class, 'NRID', 'NRID');
     }
 
 }

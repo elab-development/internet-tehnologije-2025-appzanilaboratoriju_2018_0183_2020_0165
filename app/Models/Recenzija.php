@@ -31,4 +31,5 @@ class Recenzija extends Model
     {
         return $this->belongsTo(NaucniRad::class, 'NRID');
     }
+
 }

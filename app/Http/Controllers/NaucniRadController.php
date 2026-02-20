@@ -7,10 +7,11 @@ use Illuminate\Http\Request;
 use App\Models\NaucniRad;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\NaucniRadResource;
+use Illuminate\Support\Facades\Auth;
 
 class NaucniRadController extends Controller
 {
-    /**
+    /*
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -42,7 +43,7 @@ class NaucniRadController extends Controller
                 2. Sortiranje
             */
         });
-    }
+        }
 
         $radovi = $query->get();
         
@@ -148,5 +149,57 @@ class NaucniRadController extends Controller
         return response()->json([
             'poruka' => 'Naučni rad je trajno uklonjen iz baze.'
         ], 200);
+    }
+
+    public function mojiRadovi()
+    {
+        // 1. Uzimamo trenutno ulogovanog korisnika (Istraživača)
+        $korisnik = Auth::user();
+
+        // 2. Preko relacije 'naucniRadovi' izvlačimo sve njegove radove
+        // Koristimo 'with' da odmah povučemo i oblasti i status
+        $radovi = $korisnik->naucniRadovi()
+                        ->with(['oblasti', 'status']) // Učitaj relacije za bolji prikaz
+                        ->orderBy('godina', 'desc') // Najnoviji radovi prvi
+                        ->get();
+
+        // 3. Vraćamo ih kroz Resource
+        return NaucniRadResource::collection($radovi);
+    }
+
+    //Funkcija koja prikazuje sve recenzije i stavke recenzije nekog rada
+    public function prikaziRecenziju($id)
+    {
+        // Učitavamo rad i SVE njegove recenzije, njihove stavke i autore tih recenzija
+        $rad = NaucniRad::with(['status', 'recenzije.stavke', 'recenzije.korisnik'])->find($id);
+
+        if (!$rad) {
+            return response()->json(['message' => 'Rad nije pronađen.'], 404);
+        }
+
+        // Provera da li je ulogovani korisnik autor rada
+        if (!$rad->autori->contains('ZapID', Auth::id())) {
+            return response()->json(['message' => 'Niste autor ovog rada.'], 403);
+        }
+
+        // Proveravamo da li uopšte ima recenzija u nizu
+        if ($rad->recenzije->isEmpty()) {
+            return response()->json([
+                'naslov' => $rad->naslov,
+                'message' => 'Još uvek nema urađenih recenzija za ovaj rad.'
+            ], 200);
+        }
+
+        return response()->json([
+            'rad_naslov' => $rad->naslov,
+            'status' => $rad->status->Naziv,
+            'sve_recenzije' => $rad->recenzije->map(function($recenzija) {
+                return [
+                    'datum' => $recenzija->Datum,
+                    'recenzent' => $recenzija->korisnik->ImePrezime ?? 'Anonimni recenzent',
+                    'ocene_detaljno' => $recenzija->stavke, // Sve stavke te konkretne recenzije
+                ];
+            })
+        ]);
     }
 }

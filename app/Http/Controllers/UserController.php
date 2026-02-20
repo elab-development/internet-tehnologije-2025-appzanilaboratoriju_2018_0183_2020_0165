@@ -87,16 +87,42 @@ class UserController extends Controller
             'poruka' => 'Profil uspešno ažuriran!',
             'podaci' => new UserResource($user)
         ], 200);
-        }
+    }
 
         /**
          * Remove the specified resource from storage.
          */
-        public function destroy(string $id)
-        {
-            $user = User::findOrFail($id);
-            $user->delete();
+    public function destroy(string $id)
+    {
+        $user = User::findOrFail($id);
+        $user->delete();
 
-            return response()->json(['message' => 'Korinsik obrisan']);
+        return response()->json(['message' => 'Korinsik obrisan']);
+    }
+
+    public function dodeliUlogu() {
+        // 1. Validacija - tražimo da 'uloge' bude niz (array)
+        $request->validate([
+            'ZapID' => 'required|exists:korisnik,ZapID',
+            'uloge' => 'required|array|min:1|max:3', 
+            'uloge.*' => 'exists:uloga,UlogaID', // Provera da svaki ID u nizu postoji u tabeli uloga
+        ]);
+
+        $korisnik = User::findOrFail($request->ZapID); //Traži korisnika
+
+        // 2. Priprema podataka za pivot tabelu
+        $noveUloge = [];
+        foreach ($request->uloge as $idUloge) {
+            $noveUloge[$idUloge] = ['Datum' => Carbon::now()];
+        }
+
+        // 3. Sync briše sve stare i postavlja samo ove nove
+        $korisnik->uloge()->sync($noveUloge);
+
+        return response()->json([
+            'poruka' => 'Uloge su uspešno ažurirane.',
+            'korisnik' => $korisnik->ImePrezime,
+            'trenutne_uloge' => $korisnik->uloge()->get(['uloga.UlogaID', 'Naziv']) 
+        ]);
     }
 }
