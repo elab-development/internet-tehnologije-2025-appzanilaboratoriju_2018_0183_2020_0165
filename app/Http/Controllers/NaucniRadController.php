@@ -173,6 +173,7 @@ class NaucniRadController extends Controller
         // Učitavamo rad i SVE njegove recenzije, njihove stavke i autore tih recenzija
         $rad = NaucniRad::with(['status', 'recenzije.stavke', 'recenzije.korisnik'])->find($id);
 
+        // Ukoliko sistem ne može da pronađe rad preko NRID-a
         if (!$rad) {
             return response()->json(['message' => 'Rad nije pronađen.'], 404);
         }
@@ -189,7 +190,7 @@ class NaucniRadController extends Controller
                 'message' => 'Još uvek nema urađenih recenzija za ovaj rad.'
             ], 200);
         }
-
+        //Ovde zapravo vraćamo sve recenzije i njihove stavke
         return response()->json([
             'rad_naslov' => $rad->naslov,
             'status' => $rad->status->Naziv,

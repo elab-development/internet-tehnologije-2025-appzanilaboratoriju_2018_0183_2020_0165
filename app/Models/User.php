@@ -70,4 +70,9 @@ protected $fillable = [
         );
     }
 
+    public function recenzije()
+    {
+        return $this->hasMany(Recenzija::class, 'ZapID', 'ZapID');
+    }
+
 }

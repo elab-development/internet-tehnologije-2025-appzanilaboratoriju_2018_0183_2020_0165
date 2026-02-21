@@ -18,29 +18,33 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     
     
-    //Javne metode, dostupne svakome
-    Route::post('/logout', [AuthController::class, 'logout']);
+    //Metode dostupne svakome ko je ulogovan
+    Route::post('/logout', [AuthController::class, 'logout']); //
     Route::get('/oblasti', [OblastController::class, 'index']); //Primena?
     
-    
+    //ADMINISTRATOR FUNKCIJE
     Route::middleware('role:Administrator')->group(function () {
+
         Route::get('/admin/korisnici', [UserController::class, 'index']); //Vidi sve korisnike
         Route::get('/admin/korisnici/{id}', [UserController::class, 'show']); //Vidi posebnog korisnika preko ID-a
         Route::put('/admin/korisnici/{id}', [UserController::class, 'update']); //Update profila korisnika
         Route::post('/admin/dodeli-ulogu', [UserController::class, 'dodeliUlogu']); //Izmena Uloge na nekom profilu
         Route::get('/naucniRadovi', [NaucniRadController::class, 'index']); //Prikaz svih naučnih radova, može i pretraga
+
     });
 
-
+    //ISTRAŽIVAČ FUNKCIJE
     Route::middleware('role:Istraživač')->group(function () {
-        Route::post('/radovi/slanje', [NaucniRadController::class, 'store']); // Ovde ćemo ubaciti nasumičnu dodelu recenzenta 
-        Route::get('/mojiRadovi', [NaucniRadController::class, 'mojiRadovi']); // Vidi svoje radove nezavisno od statusa
+
+        Route::post('/radovi/slanje', [NaucniRadController::class, 'store']); // Kreiranje rada, ovde ćemo ubaciti nasumičnu dodelu recenzenta.
+        Route::get('/mojiRadovi', [NaucniRadController::class, 'mojiRadovi']); // Vidi svoje radove nezavisno od statusa.
         Route::get('/rad/{id}/recenzija', [NaucniRadController::class, 'prikaziRecenziju']); // Vidi recenziju
+
     });
 
-
+    //RECENZENT FUNKCIJE
     Route::middleware('role:Recenzent')->group(function () {
-        Route::get('/radovi/za-recenziju', [RecenzijaController::class, 'dodeljeniRadovi']);
-        Route::post('/radovi/oceni', [RecenzijaController::class, 'sacuvajRecenziju']);  
+        Route::get('/radovi/za-recenziju', [RecenzijaController::class, 'dodeljeniRadovi']); //Recenzent vidi sve radove koji su mi pridodati
+        Route::post('/radovi/oceni', [RecenzijaController::class, 'sacuvajStavkuRecenzije']);  //Sacuvaj stavku Recenzije
     });
 });

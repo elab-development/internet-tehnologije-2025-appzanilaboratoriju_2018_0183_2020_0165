@@ -66,7 +66,7 @@ class RecenzijaController extends Controller
 
         // 1. Pronalazimo sve recenzije dodeljene ovom recenzentu
         $zaduzenja = Recenzija::where('ZapID', $recenzentId)
-            ->with(['naucniRad.status', 'naucniRad.oblasti', 'naucniRad.autori'])
+            ->with(['naucniRad.status', 'naucniRad.oblasti', 'naucniRad.autori'])   //Uzmi iz pivot tabela podatke
             ->get();
 
         // 2. Izvlačimo samo objekte Naučni rad iz tih recenzija

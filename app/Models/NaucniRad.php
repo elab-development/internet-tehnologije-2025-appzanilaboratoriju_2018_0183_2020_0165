@@ -58,7 +58,7 @@ class NaucniRad extends Model
         );
     }
 
-    public function recenzije() // Promenjeno u množinu
+    public function recenzije()
     {
         return $this->hasMany(Recenzija::class, 'NRID', 'NRID');
     }
