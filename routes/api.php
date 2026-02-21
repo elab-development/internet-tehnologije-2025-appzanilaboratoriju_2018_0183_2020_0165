@@ -41,6 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:Recenzent')->group(function () {
         Route::get('/radovi/za-recenziju', [RecenzijaController::class, 'dodeljeniRadovi']);
-        Route::post('/radovi/oceni', [RecenzijaController::class, 'sacuvajOcenu']); // Popunjava stavke i menja status rada
+        Route::post('/radovi/oceni', [RecenzijaController::class, 'sacuvajRecenziju']);  
     });
 });

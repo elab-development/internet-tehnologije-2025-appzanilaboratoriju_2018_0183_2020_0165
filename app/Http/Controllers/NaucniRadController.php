@@ -197,7 +197,7 @@ class NaucniRadController extends Controller
                 return [
                     'datum' => $recenzija->Datum,
                     'recenzent' => $recenzija->korisnik->ImePrezime ?? 'Anonimni recenzent',
-                    'ocene_detaljno' => $recenzija->stavke, // Sve stavke te konkretne recenzije
+                    'stavke_detaljno' => $recenzija->stavke, // Sve stavke te konkretne recenzije
                 ];
             })
         ]);
