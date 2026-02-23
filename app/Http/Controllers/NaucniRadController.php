@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\NaucniRad;
+use App\Models\User;
+use App\Models\Uloga;
+use App\Models\Recenzija;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\NaucniRadResource;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +57,7 @@ class NaucniRadController extends Controller
      */
     public function store(Request $request)
     {
+        // Validacija
         $validatedData = $request->validate([
             'naslov'      => 'required|string|max:255',
             'abstrakt'    => 'required|string',
@@ -61,22 +65,55 @@ class NaucniRadController extends Controller
             'godina'      => 'required|integer',
             'StatusID'    => 'required|exists:status,StatusID',
             'grupaId'     => 'required|integer',
+            'oblasti'     => 'required|array|min:1',
+            'autori'      => 'nullable|array|max:2', // Maksimum 2 dodatna koautora!
+            'autori.*'    => 'exists:korisnik,ZapID',
         ]);
 
-        $naucniRad = NaucniRad::create($validatedData);
+        // Provera uloge koautora
+        if ($request->has('autori') && !empty($request->autori)) {
+            $validniIstrazivaciCount = User::whereIn('ZapID', $request->autori) //brojač koji proverava za svakog
+                ->whereHas('uloge', function($q) {
+                    $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC); //Da li je navedeni autor istraživač
+                })->count(); //Izbroj broj istraživača
 
-        if ($request->has('oblasti')) {
-            $naucniRad->oblasti()->attach($request->oblasti);
+            if ($validniIstrazivaciCount !== count($request->autori)) { //Da li se poklapa broj navedenih koautora i broj koautora koji su istraživači
+                return response()->json([
+                    'error' => 'Svi koautori moraju imati ulogu Istraživač.'
+                ], 422);
+            }
         }
 
-        if ($request->has('autori')) {
-            $naucniRad->autori()->attach($request->autori);
+        //Kreiranje rada
+        $naucniRad = NaucniRad::create($validatedData);
+
+        // Povezivanje oblasti sa radom
+        $naucniRad->oblasti()->attach($request->oblasti);
+
+        // Povezivanje autora (Ulogovani + koautori)
+        $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? [])); //Možda su koautori prazan niz
+        $naucniRad->autori()->attach($sviAutori); //Povezujemo autore sa radom (punimo koautorstvo tabelu)
+
+        // Nasumična dodela recenzenta
+        $recenzent = User::whereHas('uloge', function($q) {
+                $q->where('uloga.UlogaID', Uloga::RECENZENT);
+            })
+            ->whereNotIn('ZapID', $sviAutori)
+            ->inRandomOrder()
+            ->first();
+
+        if ($recenzent) {
+            Recenzija::create([
+                'NRID'  => $naucniRad->NRID,
+                'ZapID' => $recenzent->ZapID,
+                'Datum' => now()
+            ]);
         }
 
         $naucniRad->load(['oblasti', 'status', 'autori']);
 
         return response()->json([
-            'poruka' => 'Rad uspešno dodat!',
+            'poruka' => 'Rad uspešno dodat i dodeljen recenzentu.',
             'podaci' => new NaucniRadResource($naucniRad)
         ], 201);
     }

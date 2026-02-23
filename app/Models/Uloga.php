@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Uloga extends Model
 {
+
+
+    const ADMIN = 1;
+    const RECENZENT = 2;
+    const ISTRAZIVAC = 3;
     /** @use HasFactory<\Database\Factories\UlogaFactory> */
     use HasFactory;
     protected $table = 'Uloga';
