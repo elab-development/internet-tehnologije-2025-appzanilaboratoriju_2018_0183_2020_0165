@@ -222,6 +222,12 @@ class NaucniRadController extends Controller
                 $q->where('Autorstvo.ZapID', $request->autor_id); //Tražimo u Autorstvo tabeli samo radove koji imaju ovog autora
             });
         }
+        //Filter za ključne reči
+        if ($request->has('keyword')) {
+        $s = $request->query('keyword');
+        // Koristimo % pre i posle stringa da bismo našli pojam bilo gde u tekstu
+        $query->where('kljucneReci', 'LIKE', '%' . $s . '%');
+        }
 
         $query->orderBy('godina', 'desc'); //Sortiramo da bude prvo najnoviji rad
 
