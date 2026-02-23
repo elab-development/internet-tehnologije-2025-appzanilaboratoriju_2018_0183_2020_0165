@@ -14,9 +14,10 @@ class AuthController extends Controller
     {
         $fields = $request->validate([
             'ImePrezime' => 'required|string|max:255',
-            'email' => 'required|string|unique:korisnik,email', // Provera u tabeli korisnik
+            'email' => 'required|string|unique:korisnik,email',
             'password' => 'required|string|min:6|confirmed',
-            'Biografija' => 'nullable|string'
+            'Biografija' => 'nullable|string',
+            'uloga_id' => 'required|exists:uloga,UlogaID' // Obavezno pri kreiranju
         ]);
 
         $korisnik = User::create([
@@ -26,12 +27,12 @@ class AuthController extends Controller
             'Biografija' => $fields['Biografija'] ?? null,
         ]);
 
-        // Odmah generišemo token nakon registracije
-        $token = $korisnik->createToken('myapptoken')->plainTextToken;
+        // Povezujemo korisnika sa ulogom u pivot tabeli
+        $korisnik->uloge()->attach($fields['uloga_id']);
 
         return response([
-            'user' => $korisnik,
-            'token' => $token
+            'message' => 'Admin je uspešno kreirao novog korisnika.',
+            'user' => $korisnik
         ], 201);
     }
 
@@ -41,7 +42,7 @@ class AuthController extends Controller
         $fields = $request->validate([
             'email' => 'required|string',
             'password' => 'required|string',
-            'uloga_id' => 'required|exists:uloga,UlogaID' // Validacija uloge iz tvoje baze
+            'uloga_id' => 'required|exists:uloga,UlogaID'
         ]);
 
         $korisnik = User::where('email', $fields['email'])->first();

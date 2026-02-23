@@ -40,7 +40,6 @@ class NaucniRadController extends Controller
 
             /*Predlozi:
                 1. Vremenski opseg kao način pretrage (preko kolone godina)
-                2. Sortiranje
             */
         });
         }
@@ -167,7 +166,7 @@ class NaucniRadController extends Controller
         return NaucniRadResource::collection($radovi);
     }
 
-    //Funkcija koja prikazuje sve recenzije i stavke recenzije nekog rada
+    //Funkcija koja prikazuje sve recenzije i stavke recenzije nekog rada.
     public function prikaziRecenziju($id)
     {
         // Učitavamo rad i SVE njegove recenzije, njihove stavke i autore tih recenzija
@@ -202,5 +201,40 @@ class NaucniRadController extends Controller
                 ];
             })
         ]);
+    }
+
+    public function objavljeniRadovi(Request $request)
+    {
+        $query = NaucniRad::with(['autori', 'oblasti']) //With predstavlja eager loading za veze
+            ->where('StatusID', 3); // Samo objavljeni radovi
+
+        //Filtriramo po oblasti po ID
+        if ($request->has('oblast_id')) {
+            $query->whereHas('oblasti', function($q) use ($request) { // whereHas pretražuje kroz relaciju (Many-to-Many)
+                // Filtriramo po ID-u oblasti u pivot tabeli 'OblastiRada'
+                $q->where('Oblast.OblastID', $request->oblast_id);
+            });
+        }
+        
+        //Filter za autore (Preko ID-a korisnika/autora)
+        if ($request->has('autor_id')) {
+            $query->whereHas('autori', function($q) use ($request) {
+                $q->where('Autorstvo.ZapID', $request->autor_id); //Tražimo u Autorstvo tabeli samo radove koji imaju ovog autora
+            });
+        }
+
+        $query->orderBy('godina', 'desc'); //Sortiramo da bude prvo najnoviji rad
+
+        $radovi = $query->get(); //Izvršavamo upit
+
+        // Ako je lista radova iz odabrane oblasti prazna
+        if ($radovi->isEmpty()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Nažalost, trenutno nema objavljenih radova sa takvim parametrima.',
+            'data' => [] // Vraćamo prazan niz
+        ], 200);
+        }
+        return NaucniRadResource::collection($radovi); //Koristimo Resource da bismo kontrolisali prikaz naučnog rada
     }
 }

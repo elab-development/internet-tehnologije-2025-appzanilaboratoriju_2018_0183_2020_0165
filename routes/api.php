@@ -9,9 +9,9 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RecenzijaController;
 
 
-Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-//1. Ovde mora da se doda poseban route za gledanje svih objavljenih radova url ?status=objavljen
+Route::get('/oblasti', [OblastController::class, 'index']); //Dobra primena da bi korisnik video koje sve oblasti mi imamo u bazi
+Route::get('/radovi/objavljeni', [NaucniRadController::class, 'objavljeniRadovi']); //Prikaz svih radova koji su objavljeni (Dostupni posetiocu)
 
 
 
@@ -20,11 +20,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     //Metode dostupne svakome ko je ulogovan
     Route::post('/logout', [AuthController::class, 'logout']); //
-    Route::get('/oblasti', [OblastController::class, 'index']); //Primena?
     
     //ADMINISTRATOR FUNKCIJE
     Route::middleware('role:Administrator')->group(function () {
-
+        
+        Route::post('/admin/registerUser', [AuthController::class, 'register']); //Registruj novog korisnika
         Route::get('/admin/korisnici', [UserController::class, 'index']); //Vidi sve korisnike
         Route::get('/admin/korisnici/{id}', [UserController::class, 'show']); //Vidi posebnog korisnika preko ID-a
         Route::put('/admin/korisnici/{id}', [UserController::class, 'update']); //Update profila korisnika
