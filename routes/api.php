@@ -36,7 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //ISTRAŽIVAČ FUNKCIJE
     Route::middleware('role:Istraživač')->group(function () {
 
-        Route::post('/radovi/slanje', [NaucniRadController::class, 'store']); // Kreiranje rada, ovde ćemo ubaciti nasumičnu dodelu recenzenta.
+        Route::post('/radovi/kreiranje', [NaucniRadController::class, 'store']); // Kreiranje rada, ovde ćemo ubaciti nasumičnu dodelu recenzenta.
         Route::get('/mojiRadovi', [NaucniRadController::class, 'mojiRadovi']); // Vidi svoje radove nezavisno od statusa.
         Route::get('/rad/{id}/recenzija', [NaucniRadController::class, 'prikaziRecenziju']); // Vidi recenziju
 
@@ -45,6 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
     //RECENZENT FUNKCIJE
     Route::middleware('role:Recenzent')->group(function () {
         Route::get('/radovi/za-recenziju', [RecenzijaController::class, 'dodeljeniRadovi']); //Recenzent vidi sve radove koji su mi pridodati
-        Route::post('/radovi/oceni', [RecenzijaController::class, 'sacuvajStavkuRecenzije']);  //Sacuvaj stavku Recenzije
+        Route::post('/radovi/recenziraj', [RecenzijaController::class, 'sacuvajStavkuRecenzije']);  //!!!!!TESTIRAJ KROZ POSTMAN!!!!!
     });
 });
