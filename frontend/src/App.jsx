@@ -10,7 +10,7 @@ function App() {
 
   useEffect(() => {
     // Menjaj URL ako ti Laravel ne radi na portu 8000
-    axios.get('http://localhost:8000/api/moji-radovi') 
+    axios.get('http://localhost:8000/api/naucniRadovi') 
       .then(res => {
         console.log("Podaci stigli:", res.data.data)
         setRadovi(res.data.data)
