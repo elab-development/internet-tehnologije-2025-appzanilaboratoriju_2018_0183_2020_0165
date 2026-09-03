@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Recenzija;
+use App\Models\StavkaRecenzije;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\NaucniRadResource;
@@ -74,5 +75,35 @@ class RecenzijaController extends Controller
 
         // 3. Vraćamo ih kroz NaucniRadResource da bi JSON bio čist
         return NaucniRadResource::collection($radovi);
+    }
+
+    public function sacuvajStavkuRecenzije(Request $request)
+    {
+        $validated = $request->validate([
+            'NRID'     => 'required|exists:NaucniRad,NRID',
+            'Komentar' => 'required|string',
+            'StatusID' => 'required|exists:status,StatusID',
+        ]);
+
+        $recenzija = Recenzija::where('NRID', $validated['NRID'])
+            ->where('ZapID', Auth::id())
+            ->first();
+
+        if (!$recenzija) {
+            return response()->json([
+                'message' => 'Ovaj rad vam nije dodeljen na recenziju.'
+            ], 403);
+        }
+
+        $stavka = StavkaRecenzije::create([
+            'RecenzijaID' => $recenzija->RecenzijaID,
+            'Komentar'    => $validated['Komentar'],
+            'StatusID'    => $validated['StatusID'],
+        ]);
+
+        return response()->json([
+            'poruka' => 'Stavka recenzije je uspešno sačuvana.',
+            'podaci' => $stavka->load('status')
+        ], 201);
     }
 }
