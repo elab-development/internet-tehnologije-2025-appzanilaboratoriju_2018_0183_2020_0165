@@ -9,7 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RecenzijaController;
 
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/oblasti', [OblastController::class, 'index']); //Dobra primena da bi korisnik video koje sve oblasti mi imamo u bazi
 Route::get('/radovi/objavljeni', [NaucniRadController::class, 'objavljeniRadovi']); //Prikaz svih radova koji su objavljeni (Dostupni posetiocu)
 
@@ -24,7 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     //ADMINISTRATOR FUNKCIJE
     Route::middleware('role:Administrator')->group(function () {
         
-        Route::post('/admin/registerUser', [AuthController::class, 'register']); //Registruj novog korisnika
+        Route::post('/admin/registerUser', [AuthController::class, 'register'])->middleware('throttle:10,1'); //Registruj novog korisnika
         Route::get('/admin/korisnici', [UserController::class, 'index']); //Vidi sve korisnike
         Route::get('/admin/korisnici/{id}', [UserController::class, 'show']); //Vidi posebnog korisnika preko ID-a
         Route::put('/admin/korisnici/{id}', [UserController::class, 'update']); //Update profila korisnika
