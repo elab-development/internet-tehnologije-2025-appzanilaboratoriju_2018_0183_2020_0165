@@ -11,6 +11,7 @@ use App\Models\Recenzija;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\NaucniRadResource;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class NaucniRadController extends Controller
 {
@@ -66,6 +67,7 @@ class NaucniRadController extends Controller
             'StatusID'    => 'required|exists:status,StatusID',
             'grupaId'     => 'required|integer',
             'oblasti'     => 'required|array|min:1',
+            'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'nullable|array|max:2', // Maksimum 2 dodatna koautora!
             'autori.*'    => 'exists:korisnik,ZapID',
         ]);
@@ -84,31 +86,36 @@ class NaucniRadController extends Controller
             }
         }
 
-        //Kreiranje rada
-        $naucniRad = NaucniRad::create($validatedData);
+        $naucniRad = DB::transaction(function () use ($request, $validatedData) {
 
-        // Povezivanje oblasti sa radom
-        $naucniRad->oblasti()->attach($request->oblasti);
+            //Kreiranje rada
+            $naucniRad = NaucniRad::create($validatedData);
 
-        // Povezivanje autora (Ulogovani + koautori)
-        $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? [])); //Možda su koautori prazan niz
-        $naucniRad->autori()->attach($sviAutori); //Povezujemo autore sa radom (punimo koautorstvo tabelu)
+            // Povezivanje oblasti sa radom
+            $naucniRad->oblasti()->attach($request->oblasti);
 
-        // Nasumična dodela recenzenta
-        $recenzent = User::whereHas('uloge', function($q) {
-                $q->where('uloga.UlogaID', Uloga::RECENZENT);
-            })
-            ->whereNotIn('ZapID', $sviAutori)
-            ->inRandomOrder()
-            ->first();
+            // Povezivanje autora (Ulogovani + koautori)
+            $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? [])); //Možda su koautori prazan niz
+            $naucniRad->autori()->attach($sviAutori); //Povezujemo autore sa radom (punimo koautorstvo tabelu)
 
-        if ($recenzent) {
-            Recenzija::create([
-                'NRID'  => $naucniRad->NRID,
-                'ZapID' => $recenzent->ZapID,
-                'Datum' => now()
-            ]);
-        }
+            // Nasumična dodela recenzenta
+            $recenzent = User::whereHas('uloge', function($q) {
+                    $q->where('uloga.UlogaID', Uloga::RECENZENT);
+                })
+                ->whereNotIn('ZapID', $sviAutori)
+                ->inRandomOrder()
+                ->first();
+
+            if ($recenzent) {
+                Recenzija::create([
+                    'NRID'  => $naucniRad->NRID,
+                    'ZapID' => $recenzent->ZapID,
+                    'Datum' => now()
+                ]);
+            }
+
+            return $naucniRad;
+        });
 
         $naucniRad->load(['oblasti', 'status', 'autori']);
 
