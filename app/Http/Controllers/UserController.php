@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Resources\UserResource;
+use Carbon\Carbon;
 
 class UserController extends Controller
 {
@@ -100,7 +101,7 @@ class UserController extends Controller
         return response()->json(['message' => 'Korinsik obrisan']);
     }
 
-    public function dodeliUlogu() {
+    public function dodeliUlogu(Request $request) {
         // 1. Validacija - tražimo da 'uloge' bude niz (array)
         $request->validate([
             'ZapID' => 'required|exists:korisnik,ZapID',
