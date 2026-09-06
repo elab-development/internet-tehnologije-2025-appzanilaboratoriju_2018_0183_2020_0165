@@ -101,15 +101,14 @@ class UserController extends Controller
         return response()->json(['message' => 'Korinsik obrisan']);
     }
 
-    public function dodeliUlogu(Request $request) {
+    public function dodeliUlogu(Request $request, string $id) {
         // 1. Validacija - tražimo da 'uloge' bude niz (array)
         $request->validate([
-            'ZapID' => 'required|exists:korisnik,ZapID',
-            'uloge' => 'required|array|min:1|max:3', 
+            'uloge' => 'required|array|min:1|max:3',
             'uloge.*' => 'exists:uloga,UlogaID', // Provera da svaki ID u nizu postoji u tabeli uloga
         ]);
 
-        $korisnik = User::findOrFail($request->ZapID); //Traži korisnika
+        $korisnik = User::findOrFail($id); //Traži korisnika
 
         // 2. Priprema podataka za pivot tabelu
         $noveUloge = [];

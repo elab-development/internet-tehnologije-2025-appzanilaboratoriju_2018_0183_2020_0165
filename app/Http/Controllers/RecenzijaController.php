@@ -71,17 +71,16 @@ class RecenzijaController extends Controller
         return RecenzijaResource::collection($recenzije);
     }
 
-    public function sacuvajStavkuRecenzije(Request $request)
+    public function sacuvajStavkuRecenzije(Request $request, string $id)
     {
         // Validacija podataka
         $validatedData = $request->validate([
-            'RecenzijaID' => 'required|exists:recenzija,RecenzijaID',
             'Komentar'    => 'required|string|min:10',
             'StatusID'    => 'required|exists:status,StatusID',
         ]);
 
         //Da li ulogovani recenzent zaista poseduje ovu recenziju?
-        $recenzija = Recenzija::where('RecenzijaID', $request->RecenzijaID)
+        $recenzija = Recenzija::where('RecenzijaID', $id)
             ->where('ZapID', Auth::id())
             ->firstOrFail();
 
