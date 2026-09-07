@@ -12,6 +12,7 @@ use App\Http\Controllers\RecenzijaController;
 Route::post('/prijava', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/oblasti', [OblastController::class, 'index']); //Dobra primena da bi korisnik video koje sve oblasti mi imamo u bazi
 Route::get('/radovi/objavljeni', [NaucniRadController::class, 'objavljeniRadovi']); //Prikaz svih radova koji su objavljeni (Dostupni posetiocu)
+Route::get('/radovi/{id}/citati', [NaucniRadController::class, 'citati']);
 
 
 

@@ -287,4 +287,43 @@ class NaucniRadController extends Controller
         }
         return NaucniRadResource::collection($radovi); //Koristimo Resource da bismo kontrolisali prikaz naučnog rada
     }
+
+    public function citati(string $id)
+    {
+        $rad = NaucniRad::where('StatusID', 3)->find($id);
+
+        if (!$rad) {
+            return response()->json([
+                'message' => 'Objavljen rad sa ovim ID-em ne postoji.'
+            ], 404);
+        }
+
+        $samoObjavljeni = function ($q) {
+            $q->where('StatusID', 3)->orderBy('godina', 'desc');
+        };
+
+        $rad->load([
+            'citira'          => $samoObjavljeni,
+            'citiranOdStrane' => $samoObjavljeni,
+        ]);
+
+        $mapiraj = function ($radovi) {
+            return $radovi->map(function ($r) {
+                return [
+                    'id'     => $r->NRID,
+                    'naslov' => $r->naslov,
+                    'godina' => $r->godina,
+                ];
+            })->values();
+        };
+
+        return response()->json([
+            'id'              => $rad->NRID,
+            'naslov'          => $rad->naslov,
+            'brojCitata'      => $rad->citiranOdStrane->count(),
+            'citiranOdStrane' => $mapiraj($rad->citiranOdStrane),
+            'brojReferenci'   => $rad->citira->count(),
+            'citira'          => $mapiraj($rad->citira),
+        ], 200);
+    }
 }
