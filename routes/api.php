@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/radovi', [NaucniRadController::class, 'store']); // Kreiranje rada, ovde ćemo ubaciti nasumičnu dodelu recenzenta.
         Route::get('/radovi/moji', [NaucniRadController::class, 'mojiRadovi']); // Vidi svoje radove nezavisno od statusa.
         Route::get('/radovi/{id}/recenzije', [NaucniRadController::class, 'prikaziRecenziju']); // Vidi recenziju
+        Route::get('/istrazivaci', [UserController::class, 'istrazivaci']);
 
     });
 

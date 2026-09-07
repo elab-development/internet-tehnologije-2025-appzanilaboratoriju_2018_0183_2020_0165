@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Uloga;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Resources\UserResource;
 use Carbon\Carbon;
@@ -122,7 +124,26 @@ class UserController extends Controller
         return response()->json([
             'poruka' => 'Uloge su uspešno ažurirane.',
             'korisnik' => $korisnik->ImePrezime,
-            'trenutne_uloge' => $korisnik->uloge()->get(['uloga.UlogaID', 'Naziv']) 
+            'trenutne_uloge' => $korisnik->uloge()->get(['uloga.UlogaID', 'Naziv'])
         ]);
+    }
+
+    public function istrazivaci()
+    {
+        $istrazivaci = User::whereHas('uloge', function ($q) {
+                $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
+            })
+            ->where('ZapID', '!=', Auth::id())
+            ->orderBy('ImePrezime')
+            ->get(['ZapID', 'ImePrezime']);
+
+        return response()->json([
+            'podaci' => $istrazivaci->map(function ($istrazivac) {
+                return [
+                    'id'         => $istrazivac->ZapID,
+                    'imePrezime' => $istrazivac->ImePrezime,
+                ];
+            })
+        ], 200);
     }
 }
