@@ -30,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/korisnici/{id}', [UserController::class, 'update']); //Update profila korisnika
         Route::put('/admin/korisnici/{id}/uloge', [UserController::class, 'dodeliUlogu']); //Izmena Uloge na nekom profilu
         Route::get('/radovi', [NaucniRadController::class, 'index']); //Prikaz svih naučnih radova, može i pretraga
+        Route::delete('/radovi/{id}', [NaucniRadController::class, 'destroy']); //SK17 - Brisanje naučnog rada
+        Route::delete('/recenzije/{id}', [RecenzijaController::class, 'destroy']); //SK18 - Brisanje recenzije
 
     });
 
