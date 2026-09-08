@@ -7,6 +7,7 @@ use App\Http\Controllers\OblastController;
 use App\Http\Controllers\NaucniRadController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RecenzijaController;
+use App\Http\Controllers\StatistikaController;
 
 
 Route::post('/prijava', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -35,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/radovi', [NaucniRadController::class, 'index']); //Prikaz svih naučnih radova, može i pretraga
         Route::delete('/radovi/{id}', [NaucniRadController::class, 'destroy']); //SK17 - Brisanje naučnog rada
         Route::delete('/recenzije/{id}', [RecenzijaController::class, 'destroy']); //SK18 - Brisanje recenzije
+        Route::get('/statistika/radovi-po-statusu', [StatistikaController::class, 'radoviPoStatusu']);
+        Route::get('/statistika/radovi-po-godini', [StatistikaController::class, 'radoviPoGodini']);
 
     });
 
