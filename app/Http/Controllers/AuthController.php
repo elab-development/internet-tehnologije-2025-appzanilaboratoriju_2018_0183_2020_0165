@@ -67,7 +67,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $korisnik->createToken('myapptoken')->plainTextToken;
+        $token = $korisnik->createToken('myapptoken', ['uloga:' . $fields['uloga_id']])->plainTextToken;
 
         return response([
             'korisnik' => $korisnik,
