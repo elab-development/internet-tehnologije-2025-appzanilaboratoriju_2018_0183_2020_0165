@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../../hooks/useAuth'
 import { ULOGE } from '../../context/authKontekst'
+import Button from '../../components/Button/Button'
+import Input from '../../components/Input/Input'
 
 const POCETNA_STRANICA_PO_ULOZI = {
   [ULOGE.ADMINISTRATOR]: '/admin/korisnici',
@@ -50,33 +52,23 @@ export default function Prijava() {
               {greska && <div className="alert alert-danger py-2">{greska}</div>}
 
               <form onSubmit={posaljiFormu}>
-                <div className="mb-3">
-                  <label className="form-label" htmlFor="email">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    className="form-control"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+                <Input
+                  naziv="email"
+                  labela="Email"
+                  tip="email"
+                  vrednost={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  obavezno
+                />
 
-                <div className="mb-3">
-                  <label className="form-label" htmlFor="lozinka">
-                    Lozinka
-                  </label>
-                  <input
-                    id="lozinka"
-                    type="password"
-                    className="form-control"
-                    value={lozinka}
-                    onChange={(e) => setLozinka(e.target.value)}
-                    required
-                  />
-                </div>
+                <Input
+                  naziv="lozinka"
+                  labela="Lozinka"
+                  tip="password"
+                  vrednost={lozinka}
+                  onChange={(e) => setLozinka(e.target.value)}
+                  obavezno
+                />
 
                 <div className="mb-4">
                   <label className="form-label" htmlFor="uloga">
@@ -94,9 +86,9 @@ export default function Prijava() {
                   </select>
                 </div>
 
-                <button type="submit" className="btn btn-primary w-100" disabled={ucitava}>
+                <Button tip="submit" ucitava={ucitava} dodatneKlase="w-100">
                   {ucitava ? 'Prijavljivanje...' : 'Prijavi se'}
-                </button>
+                </Button>
               </form>
             </div>
           </div>
