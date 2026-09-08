@@ -13,6 +13,7 @@ use App\Http\Controllers\StatistikaController;
 Route::post('/prijava', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::get('/oblasti', [OblastController::class, 'index']); //Dobra primena da bi korisnik video koje sve oblasti mi imamo u bazi
 Route::get('/radovi/objavljeni', [NaucniRadController::class, 'objavljeniRadovi']); //Prikaz svih radova koji su objavljeni (Dostupni posetiocu)
+Route::get('/radovi/{id}', [NaucniRadController::class, 'show'])->where('id', '[0-9]+'); //SK1 - Prikaz jednog rada
 Route::get('/radovi/{id}/citati', [NaucniRadController::class, 'citati']);
 Route::get('/radovi/{id}/spoljni-citati', [NaucniRadController::class, 'spoljniCitati']);
 Route::get('/radovi/{id}/srodni-radovi', [NaucniRadController::class, 'srodniRadovi']);
@@ -33,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/korisnici/{id}', [UserController::class, 'show']); //Vidi posebnog korisnika preko ID-a
         Route::put('/admin/korisnici/{id}', [UserController::class, 'update']); //Update profila korisnika
         Route::put('/admin/korisnici/{id}/uloge', [UserController::class, 'dodeliUlogu']); //Izmena Uloge na nekom profilu
+        Route::delete('/admin/korisnici/{id}', [UserController::class, 'destroy']); //FZ1, SK16 - Brisanje korisnickog naloga
         Route::get('/radovi', [NaucniRadController::class, 'index']); //Prikaz svih naučnih radova, može i pretraga
         Route::delete('/radovi/{id}', [NaucniRadController::class, 'destroy']); //SK17 - Brisanje naučnog rada
         Route::delete('/recenzije/{id}', [RecenzijaController::class, 'destroy']); //SK18 - Brisanje recenzije

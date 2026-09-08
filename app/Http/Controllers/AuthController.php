@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -20,19 +22,23 @@ class AuthController extends Controller
             'uloga_id' => 'required|exists:uloga,UlogaID' // Obavezno pri kreiranju
         ]);
 
-        $korisnik = User::create([
-            'ImePrezime' => $fields['ImePrezime'],
-            'email' => $fields['email'],
-            'password' => Hash::make($fields['password']),
-            'Biografija' => $fields['Biografija'] ?? null,
-        ]);
+        $korisnik = DB::transaction(function () use ($fields) {
+            $korisnik = User::create([
+                'ImePrezime' => $fields['ImePrezime'],
+                'email' => $fields['email'],
+                'password' => Hash::make($fields['password']),
+                'Biografija' => $fields['Biografija'] ?? null,
+            ]);
 
-        // Povezujemo korisnika sa ulogom u pivot tabeli
-        $korisnik->uloge()->attach($fields['uloga_id']);
+            // Povezujemo korisnika sa ulogom u pivot tabeli
+            $korisnik->uloge()->attach($fields['uloga_id'], ['Datum' => Carbon::now()]);
+
+            return $korisnik;
+        });
 
         return response([
             'message' => 'Admin je uspešno kreirao novog korisnika.',
-            'user' => $korisnik
+            'user' => $korisnik->load('uloge')
         ], 201);
     }
 
