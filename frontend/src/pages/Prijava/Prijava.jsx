@@ -4,6 +4,8 @@ import useAuth from '../../hooks/useAuth'
 import { ULOGE } from '../../context/authKontekst'
 import Button from '../../components/Button/Button'
 import Input from '../../components/Input/Input'
+import Select from '../../components/Select/Select'
+import Poruka from '../../components/Poruka/Poruka'
 
 const POCETNA_STRANICA_PO_ULOZI = {
   [ULOGE.ADMINISTRATOR]: '/admin/korisnici',
@@ -49,7 +51,7 @@ export default function Prijava() {
             <div className="card-body p-4">
               <h3 className="card-title mb-4 text-center">Prijava na sistem</h3>
 
-              {greska && <div className="alert alert-danger py-2">{greska}</div>}
+              {greska && <Poruka vrsta="greska">{greska}</Poruka>}
 
               <form onSubmit={posaljiFormu}>
                 <Input
@@ -70,21 +72,17 @@ export default function Prijava() {
                   obavezno
                 />
 
-                <div className="mb-4">
-                  <label className="form-label" htmlFor="uloga">
-                    Prijavi se kao
-                  </label>
-                  <select
-                    id="uloga"
-                    className="form-select"
-                    value={ulogaId}
-                    onChange={(e) => setUlogaId(e.target.value)}
-                  >
-                    <option value={ULOGE.ISTRAZIVAC}>Istraživač</option>
-                    <option value={ULOGE.RECENZENT}>Recenzent</option>
-                    <option value={ULOGE.ADMINISTRATOR}>Administrator</option>
-                  </select>
-                </div>
+                <Select
+                  naziv="uloga"
+                  labela="Prijavi se kao"
+                  vrednost={ulogaId}
+                  onChange={(e) => setUlogaId(e.target.value)}
+                  opcije={[
+                    { vrednost: ULOGE.ISTRAZIVAC, tekst: 'Istraživač' },
+                    { vrednost: ULOGE.RECENZENT, tekst: 'Recenzent' },
+                    { vrednost: ULOGE.ADMINISTRATOR, tekst: 'Administrator' },
+                  ]}
+                />
 
                 <Button tip="submit" ucitava={ucitava} dodatneKlase="w-100">
                   {ucitava ? 'Prijavljivanje...' : 'Prijavi se'}
