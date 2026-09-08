@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\NaucniRad;
+use App\Models\Uloga;
 
 class AutorstvoSeeder extends Seeder
 {
@@ -20,17 +21,25 @@ class AutorstvoSeeder extends Seeder
             $uvezen->autori()->detach();
         }
 
+        // Autori mogu biti samo Istrazivaci, isto pravilo koje NaucniRadController::store namece
+        $istrazivaci = User::whereHas('uloge', function ($q) {
+            $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
+        })->pluck('ZapID');
+
+        if ($istrazivaci->isEmpty()) {
+            return;
+        }
+
        // Uzmi samo interno predate radove
         $radovi = NaucniRad::whereNull('DOI')->get();
 
         foreach ($radovi as $rad) {
-            // Odaberi nasumične korisnike kao autore
-            $autori = User::inRandomOrder()
-                ->take(rand(1, 3)) // 1 do 3 autora po radu
-                ->pluck('ZapID');
+            // Podnosilac plus najvise dva koautora, kao u store()
+            $koliko = min(rand(1, 3), $istrazivaci->count());
+            $autori = $istrazivaci->shuffle()->take($koliko);
 
-            // Poveži autore sa radom u pivot tabeli
-            $rad->autori()->syncWithoutDetaching($autori);
+            // Sync umesto syncWithoutDetaching da se autori ne gomilaju pri ponovnom pokretanju
+            $rad->autori()->sync($autori);
         }
     }
 }
