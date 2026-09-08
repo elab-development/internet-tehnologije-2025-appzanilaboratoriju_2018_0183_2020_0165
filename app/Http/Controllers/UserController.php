@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Uloga;
+use App\Models\Status;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Resources\UserResource;
@@ -133,17 +134,53 @@ class UserController extends Controller
         $istrazivaci = User::whereHas('uloge', function ($q) {
                 $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
             })
-            ->where('ZapID', '!=', Auth::id())
+            ->withCount(['naucniRadovi as brojObjavljenihRadova' => function ($q) {
+                $q->where('StatusID', Status::OBJAVLJEN);
+            }])
             ->orderBy('ImePrezime')
-            ->get(['ZapID', 'ImePrezime']);
+            ->get(['ZapID', 'ImePrezime', 'Biografija']);
 
         return response()->json([
             'podaci' => $istrazivaci->map(function ($istrazivac) {
                 return [
-                    'id'         => $istrazivac->ZapID,
-                    'imePrezime' => $istrazivac->ImePrezime,
+                    'id'                     => $istrazivac->ZapID,
+                    'imePrezime'             => $istrazivac->ImePrezime,
+                    'biografija'             => $istrazivac->Biografija,
+                    'brojObjavljenihRadova'  => $istrazivac->brojObjavljenihRadova,
                 ];
             })
+        ], 200);
+    }
+
+    public function profilIstrazivaca(string $id)
+    {
+        $istrazivac = User::whereHas('uloge', function ($q) {
+                $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
+            })
+            ->with(['naucniRadovi' => function ($q) {
+                $q->where('StatusID', Status::OBJAVLJEN)->orderBy('godina', 'desc');
+            }])
+            ->find($id);
+
+        if (!$istrazivac) {
+            return response()->json([
+                'message' => 'Istrazivac sa ovim ID-em ne postoji.'
+            ], 404);
+        }
+
+        return response()->json([
+            'id'          => $istrazivac->ZapID,
+            'imePrezime'  => $istrazivac->ImePrezime,
+            'biografija'  => $istrazivac->Biografija,
+            'radovi'      => $istrazivac->naucniRadovi->map(function ($rad) {
+                return [
+                    'id'            => $rad->NRID,
+                    'naslov'        => $rad->naslov,
+                    'godina'        => $rad->godina,
+                    'doi'           => $rad->DOI,
+                    'spoljniAutori' => $rad->spoljniAutori,
+                ];
+            })->values(),
         ], 200);
     }
 }

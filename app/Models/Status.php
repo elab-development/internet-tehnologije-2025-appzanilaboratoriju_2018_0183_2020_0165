@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Status extends Model
 {
+    const NACRT = 1;
+    const CEKA_RECENZIJU = 2;
+    const OBJAVLJEN = 3;
+    const ODBIJEN = 4;
+
     /** @use HasFactory<\Database\Factories\StatusFactory> */
     use HasFactory;
 

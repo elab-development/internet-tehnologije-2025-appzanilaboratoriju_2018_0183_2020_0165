@@ -14,6 +14,8 @@ Route::post('/prijava', [AuthController::class, 'login'])->middleware('throttle:
 Route::get('/oblasti', [OblastController::class, 'index']); //Dobra primena da bi korisnik video koje sve oblasti mi imamo u bazi
 Route::get('/radovi/objavljeni', [NaucniRadController::class, 'objavljeniRadovi']); //Prikaz svih radova koji su objavljeni (Dostupni posetiocu)
 Route::get('/radovi/{id}', [NaucniRadController::class, 'show'])->where('id', '[0-9]+'); //SK1 - Prikaz jednog rada
+Route::get('/istrazivaci', [UserController::class, 'istrazivaci']); //SK3 - Lista istrazivaca sa biografijama
+Route::get('/istrazivaci/{id}', [UserController::class, 'profilIstrazivaca'])->where('id', '[0-9]+'); //SK3 - Profil istrazivaca
 Route::get('/radovi/{id}/citati', [NaucniRadController::class, 'citati']);
 Route::get('/radovi/{id}/spoljni-citati', [NaucniRadController::class, 'spoljniCitati']);
 Route::get('/radovi/{id}/srodni-radovi', [NaucniRadController::class, 'srodniRadovi']);
@@ -49,7 +51,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/radovi', [NaucniRadController::class, 'store']); // Kreiranje rada, ovde ćemo ubaciti nasumičnu dodelu recenzenta.
         Route::get('/radovi/moji', [NaucniRadController::class, 'mojiRadovi']); // Vidi svoje radove nezavisno od statusa.
         Route::get('/radovi/{id}/recenzije', [NaucniRadController::class, 'prikaziRecenziju']); // Vidi recenziju
-        Route::get('/istrazivaci', [UserController::class, 'istrazivaci']);
 
     });
 
