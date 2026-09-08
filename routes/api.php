@@ -13,6 +13,8 @@ Route::post('/prijava', [AuthController::class, 'login'])->middleware('throttle:
 Route::get('/oblasti', [OblastController::class, 'index']); //Dobra primena da bi korisnik video koje sve oblasti mi imamo u bazi
 Route::get('/radovi/objavljeni', [NaucniRadController::class, 'objavljeniRadovi']); //Prikaz svih radova koji su objavljeni (Dostupni posetiocu)
 Route::get('/radovi/{id}/citati', [NaucniRadController::class, 'citati']);
+Route::get('/radovi/{id}/spoljni-citati', [NaucniRadController::class, 'spoljniCitati']);
+Route::get('/radovi/{id}/srodni-radovi', [NaucniRadController::class, 'srodniRadovi']);
 
 
 

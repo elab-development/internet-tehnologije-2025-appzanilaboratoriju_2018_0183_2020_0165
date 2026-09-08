@@ -20,9 +20,11 @@ class NaucniRadResource extends JsonResource
             'abstrakt' => $this->abstrakt,
             'kljucneReci' => $this->kljucneReci,
             'godina' => $this->godina,
-            'oblasti' => $this->oblasti->pluck('naziv'), 
+            'doi' => $this->DOI,
+            'oblasti' => $this->oblasti->pluck('naziv'),
             'status' => $this->status->Naziv,
             'autori' => $this->autori->pluck('ImePrezime'),
+            'spoljniAutori' => $this->spoljniAutori,
         ];
     }
 }

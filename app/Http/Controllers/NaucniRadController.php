@@ -11,7 +11,9 @@ use App\Models\Recenzija;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\NaucniRadResource;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class NaucniRadController extends Controller
 {
@@ -325,5 +327,149 @@ class NaucniRadController extends Controller
             'brojReferenci'   => $rad->citira->count(),
             'citira'          => $mapiraj($rad->citira),
         ], 200);
+    }
+
+    public function spoljniCitati(string $id)
+    {
+        $rad = NaucniRad::where('StatusID', 3)->find($id);
+
+        if (!$rad) {
+            return response()->json([
+                'message' => 'Objavljen rad sa ovim ID-em ne postoji.'
+            ], 404);
+        }
+
+        if (empty($rad->DOI)) {
+            return response()->json([
+                'message' => 'Rad nema DOI pa se citiranost ne moze proveriti kod spoljnih servisa.'
+            ], 422);
+        }
+
+        $crossRef = Cache::remember('spoljni-citati:' . $rad->DOI, now()->addHours(6), function () use ($rad) {
+            return $this->citatiSaCrossRefa($rad->DOI);
+        });
+
+        return response()->json([
+            'id'       => $rad->NRID,
+            'naslov'   => $rad->naslov,
+            'doi'      => $rad->DOI,
+            'crossRef' => $crossRef,
+        ], 200);
+    }
+
+    private function citatiSaCrossRefa(string $doi): array
+    {
+        try {
+            $odgovor = Http::timeout(10)
+                ->withHeaders(['User-Agent' => 'NILApp/1.0 (https://github.com/elab-development)'])
+                ->get('https://api.crossref.org/works/' . rawurlencode($doi));
+        } catch (\Throwable $e) {
+            return ['dostupno' => false, 'razlog' => 'Servis nije dostupan.'];
+        }
+
+        if ($odgovor->status() === 404) {
+            return ['dostupno' => true, 'doiPotvrdjen' => false, 'razlog' => 'CrossRef ne poznaje ovaj DOI.'];
+        }
+
+        if ($odgovor->failed()) {
+            return ['dostupno' => false, 'razlog' => 'CrossRef je vratio status ' . $odgovor->status() . '.'];
+        }
+
+        $poruka = $odgovor->json('message') ?? [];
+
+        return [
+            'dostupno'     => true,
+            'doiPotvrdjen' => true,
+            'brojCitata'   => $poruka['is-referenced-by-count'] ?? null,
+            'casopis'      => $poruka['container-title'][0] ?? null,
+            'izdavac'      => $poruka['publisher'] ?? null,
+            'tip'          => $poruka['type'] ?? null,
+        ];
+    }
+
+    public function srodniRadovi(string $id)
+    {
+        $rad = NaucniRad::find($id);
+
+        if (!$rad) {
+            return response()->json([
+                'message' => 'Rad sa ovim ID-em ne postoji.'
+            ], 404);
+        }
+
+        $pojam = trim((string) $rad->kljucneReci);
+
+        if ($pojam === '') {
+            return response()->json([
+                'message' => 'Rad nema kljucne reci pa se srodni radovi ne mogu potraziti.'
+            ], 422);
+        }
+
+        $srodni = Cache::remember('srodni-radovi:' . md5($pojam) . ':' . $rad->NRID, now()->addHours(6), function () use ($pojam, $rad) {
+            return $this->pretragaNaOpenAlexu($pojam, $rad->DOI);
+        });
+
+        return response()->json([
+            'id'          => $rad->NRID,
+            'naslov'      => $rad->naslov,
+            'kljucneReci' => $rad->kljucneReci,
+            'srodni'      => $srodni,
+        ], 200);
+    }
+
+    private function pretragaNaOpenAlexu(string $pojam, ?string $doiZaIzuzeti): array
+    {
+        try {
+            $odgovor = Http::timeout(15)
+                ->withHeaders(['User-Agent' => 'NILApp/1.0 (mailto:nilapp@example.com)'])
+                ->get('https://api.openalex.org/works', [
+                    'search'   => $pojam,
+                    'select'   => 'doi,title,publication_year,cited_by_count,authorships',
+                    'per-page' => 6,
+                ]);
+        } catch (\Throwable $e) {
+            return ['dostupno' => false, 'razlog' => 'Servis nije dostupan.'];
+        }
+
+        if ($odgovor->failed()) {
+            return ['dostupno' => false, 'razlog' => 'OpenAlex je vratio status ' . $odgovor->status() . '.'];
+        }
+
+        $rezultati = [];
+
+        foreach (($odgovor->json('results') ?? []) as $stavka) {
+            $doi = $stavka['doi'] ?? null;
+            $goliDoi = $doi ? strtolower(str_replace('https://doi.org/', '', $doi)) : null;
+
+            if ($doiZaIzuzeti && $goliDoi === strtolower($doiZaIzuzeti)) {
+                continue;
+            }
+
+            $autori = [];
+            foreach (array_slice($stavka['authorships'] ?? [], 0, 3) as $autorstvo) {
+                $ime = $autorstvo['author']['display_name'] ?? null;
+                if ($ime) {
+                    $autori[] = $ime;
+                }
+            }
+
+            $rezultati[] = [
+                'naslov'     => $stavka['title'] ?? null,
+                'godina'     => $stavka['publication_year'] ?? null,
+                'doi'        => $goliDoi,
+                'brojCitata' => $stavka['cited_by_count'] ?? null,
+                'autori'     => implode(', ', $autori),
+            ];
+
+            if (count($rezultati) >= 5) {
+                break;
+            }
+        }
+
+        return [
+            'dostupno' => true,
+            'broj'     => count($rezultati),
+            'radovi'   => $rezultati,
+        ];
     }
 }
