@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import useAuth from '../../hooks/useAuth'
 import { ULOGE } from '../../context/authKontekst'
+import Button from '../Button/Button'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -78,9 +79,9 @@ export default function Navbar() {
                   {korisnik?.ImePrezime}
                   <span className="badge bg-info text-dark ms-2">{ulogaNaziv}</span>
                 </span>
-                <button className="btn btn-outline-light btn-sm" onClick={naOdjavu}>
+                <Button varijanta="outlineSvetla" velicina="mala" onClick={naOdjavu}>
                   Odjavi se
-                </button>
+                </Button>
               </>
             ) : (
               <NavLink className="btn btn-info btn-sm" to="/prijava">
