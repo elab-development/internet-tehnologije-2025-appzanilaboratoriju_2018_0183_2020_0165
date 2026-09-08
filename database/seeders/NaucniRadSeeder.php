@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\NaucniRad;
 use App\Models\Oblast;
+use App\Models\Status;
 
 class NaucniRadSeeder extends Seeder
 {
@@ -28,7 +29,7 @@ class NaucniRadSeeder extends Seeder
 
             $rad = NaucniRad::updateOrCreate(
                 ['naslov' => $podaci['naslov']],
-                $podaci + ['grupaId' => $grupa, 'verzija' => 1, 'StatusID' => 3]
+                $podaci + ['grupaId' => $grupa, 'verzija' => 1, 'StatusID' => Status::OBJAVLJEN]
             );
 
             $idOblasti = Oblast::whereIn('naziv', $oblasti)->pluck('oblastId');
@@ -40,23 +41,84 @@ class NaucniRadSeeder extends Seeder
 
     private function interniRadovi(): void
     {
-        if (NaucniRad::whereNull('DOI')->exists()) {
-            return;
-        }
-
         $grupa = NaucniRad::max('grupaId') + 1;
 
-        foreach ([1, 1, 2, 2, 4] as $statusId) {
-            NaucniRad::factory()->create([
-                'DOI'           => null,
-                'spoljniAutori' => null,
-                'grupaId'       => $grupa,
-                'verzija'       => 1,
-                'StatusID'      => $statusId,
-            ]);
+        foreach ($this->radoviLaboratorije() as $podaci) {
+            $oblasti = $podaci['oblasti'];
+            unset($podaci['oblasti']);
+
+            $rad = NaucniRad::updateOrCreate(
+                ['naslov' => $podaci['naslov']],
+                $podaci + ['DOI' => null, 'spoljniAutori' => null, 'grupaId' => $grupa, 'verzija' => 1]
+            );
+
+            $idOblasti = Oblast::whereIn('naziv', $oblasti)->pluck('oblastId');
+            $rad->oblasti()->syncWithoutDetaching($idOblasti);
 
             $grupa++;
         }
+    }
+
+    private function radoviLaboratorije(): array
+    {
+        return [
+            [
+                'naslov'      => 'Primena konvolutivnih neuronskih mreža u analizi medicinskih snimaka',
+                'godina'      => 2024,
+                'StatusID'    => Status::OBJAVLJEN,
+                'kljucneReci' => 'neuronske mreže, medicinski snimci, klasifikacija',
+                'abstrakt'    => 'Rad ispituje primenu konvolutivnih neuronskih mreža na skupu rendgenskih snimaka i poredi tačnost sa postojećim metodama obrade slike.',
+                'oblasti'     => ['Veštačka inteligencija', 'Medicina'],
+            ],
+            [
+                'naslov'      => 'Optimizacija upita nad velikim skupovima bibliografskih podataka',
+                'godina'      => 2023,
+                'StatusID'    => Status::OBJAVLJEN,
+                'kljucneReci' => 'baze podataka, indeksiranje, optimizacija upita',
+                'abstrakt'    => 'Prikaz strategija indeksiranja i keširanja pri pretrazi bibliografskih zapisa, sa merenjima nad skupom od nekoliko miliona zapisa.',
+                'oblasti'     => ['Informacione Tehnologije', 'Matematika'],
+            ],
+            [
+                'naslov'      => 'Modelovanje širenja zaraznih bolesti u urbanim sredinama',
+                'godina'      => 2025,
+                'StatusID'    => Status::CEKA_RECENZIJU,
+                'kljucneReci' => 'epidemiologija, matematičko modelovanje, simulacija',
+                'abstrakt'    => 'Predložen je model širenja zaraze zasnovan na mreži kontakata, sa osvrtom na uticaj gustine naseljenosti na brzinu prenosa.',
+                'oblasti'     => ['Medicina', 'Matematika'],
+            ],
+            [
+                'naslov'      => 'Detekcija anomalija u senzorskim mrežama laboratorije',
+                'godina'      => 2025,
+                'StatusID'    => Status::CEKA_RECENZIJU,
+                'kljucneReci' => 'senzorske mreže, detekcija anomalija, nadzor sistema',
+                'abstrakt'    => 'Opisan je postupak prepoznavanja neispravnih senzora na osnovu odstupanja od očekivanih vrednosti u realnom vremenu.',
+                'oblasti'     => ['Informacione Tehnologije', 'Veštačka inteligencija'],
+            ],
+            [
+                'naslov'      => 'Uticaj temperature na stabilnost proteinskih struktura',
+                'godina'      => 2026,
+                'StatusID'    => Status::NACRT,
+                'kljucneReci' => 'proteini, termička stabilnost, molekularna dinamika',
+                'abstrakt'    => 'Ispitivanje promene konformacije odabranih proteina pri povišenim temperaturama metodom molekularne dinamike.',
+                'oblasti'     => ['Biologija', 'Fizika'],
+            ],
+            [
+                'naslov'      => 'Kvantni algoritmi za pretragu nesortiranih skupova',
+                'godina'      => 2026,
+                'StatusID'    => Status::NACRT,
+                'kljucneReci' => 'kvantni algoritmi, pretraga, složenost',
+                'abstrakt'    => 'Pregled kvantnih pristupa pretrazi nesortiranih skupova i poređenje njihove složenosti sa klasičnim algoritmima.',
+                'oblasti'     => ['Fizika', 'Informacione Tehnologije'],
+            ],
+            [
+                'naslov'      => 'Statistička analiza citiranosti radova domaćih istraživača',
+                'godina'      => 2024,
+                'StatusID'    => Status::ODBIJEN,
+                'kljucneReci' => 'scientometrija, citiranost, statistička analiza',
+                'abstrakt'    => 'Analiza kretanja citiranosti radova objavljenih u domaćim časopisima u periodu od deset godina.',
+                'oblasti'     => ['Matematika', 'Biologija'],
+            ],
+        ];
     }
 
     private function pravRadovi(): array

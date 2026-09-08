@@ -26,9 +26,10 @@ class DatabaseSeeder extends Seeder
             NaucniRadSeeder::class,
 
             // 3️⃣ Agregacije i slabi objekti
+            // Autorstvo ide pre recenzija, jer se recenzent bira medju onima koji nisu autori rada
+            AutorstvoSeeder::class,
             RecenzijaSeeder::class,
             StavkaRecenzijeSeeder::class,
-            AutorstvoSeeder::class,
             ReferenceSeeder::class,
         ]);
     }

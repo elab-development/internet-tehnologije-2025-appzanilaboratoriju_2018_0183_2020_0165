@@ -8,6 +8,7 @@ use App\Models\NaucniRad;
 use App\Models\User;
 use App\Models\Uloga;
 use App\Models\Recenzija;
+use App\Models\Status;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\NaucniRadResource;
 use Illuminate\Support\Facades\Auth;
@@ -66,7 +67,6 @@ class NaucniRadController extends Controller
             'abstrakt'    => 'required|string',
             'kljucneReci' => 'required|string',
             'godina'      => 'required|integer',
-            'StatusID'    => 'required|exists:status,StatusID',
             'grupaId'     => 'required|integer',
             'oblasti'     => 'required|array|min:1',
             'oblasti.*'   => 'exists:oblast,oblastId',
@@ -90,8 +90,8 @@ class NaucniRadController extends Controller
 
         $naucniRad = DB::transaction(function () use ($request, $validatedData) {
 
-            //Kreiranje rada
-            $naucniRad = NaucniRad::create($validatedData);
+            //Kreiranje rada, status odredjuje sistem a ne podnosilac
+            $naucniRad = NaucniRad::create(array_merge($validatedData, ['StatusID' => Status::CEKA_RECENZIJU]));
 
             // Povezivanje oblasti sa radom
             $naucniRad->oblasti()->attach($request->oblasti);
@@ -150,7 +150,6 @@ class NaucniRadController extends Controller
             'godina'      => 'sometimes|integer',
             'grupaId'     => 'nullable|integer',
             'verzija'     => 'nullable|integer',
-            'StatusID'    => 'sometimes|exists:status,StatusID',
             'oblasti'     => 'array',
             'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'array',
@@ -252,7 +251,7 @@ class NaucniRadController extends Controller
     public function objavljeniRadovi(Request $request)
     {
         $query = NaucniRad::with(['autori', 'oblasti']) //With predstavlja eager loading za veze
-            ->where('StatusID', 3); // Samo objavljeni radovi
+            ->where('StatusID', Status::OBJAVLJEN); // Samo objavljeni radovi
 
         //Filtriramo po oblasti po ID
         if ($request->has('oblast_id')) {
@@ -292,7 +291,7 @@ class NaucniRadController extends Controller
 
     public function citati(string $id)
     {
-        $rad = NaucniRad::where('StatusID', 3)->find($id);
+        $rad = NaucniRad::where('StatusID', Status::OBJAVLJEN)->find($id);
 
         if (!$rad) {
             return response()->json([
@@ -301,7 +300,7 @@ class NaucniRadController extends Controller
         }
 
         $samoObjavljeni = function ($q) {
-            $q->where('StatusID', 3)->orderBy('godina', 'desc');
+            $q->where('StatusID', Status::OBJAVLJEN)->orderBy('godina', 'desc');
         };
 
         $rad->load([
@@ -331,7 +330,7 @@ class NaucniRadController extends Controller
 
     public function spoljniCitati(string $id)
     {
-        $rad = NaucniRad::where('StatusID', 3)->find($id);
+        $rad = NaucniRad::where('StatusID', Status::OBJAVLJEN)->find($id);
 
         if (!$rad) {
             return response()->json([
