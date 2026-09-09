@@ -2,22 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StavkaRecenzije; 
+use App\Models\StavkaRecenzije;
 use Illuminate\Http\Request;
 
 class StavkaRecenzijeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
         return StavkaRecenzije::all();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -35,27 +30,18 @@ class StavkaRecenzijeController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         return StavkaRecenzije::findOrFail($id);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        //ne pravimo, jer cuvamo istoriju recenzija
+
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        //ne pravimo, jer cuvamo istoriju recenzija
+
     }
 }

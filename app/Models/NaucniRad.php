@@ -7,22 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class NaucniRad extends Model
 {
-    /** @use HasFactory<\Database\Factories\NaucniRadFactory> */
+
     use HasFactory;
     protected $table = 'NaucniRad';
     protected $fillable = ['naslov','abstrakt', 'kljucneReci', 'godina', 'DOI', 'spoljniAutori', 'grupaId', 'verzija', 'StatusID'];
 
     protected $primaryKey = 'NRID';
-    
+
     public function oblasti() {
         return $this->belongsToMany(
-            Oblast::class,    // model
-            'OblastiRada',    // pivot tabela
-            'NRID',           // FK NaucniRad u pivot tabeli
-            'oblastId'        // FK Oblast u pivot tabeli
+            Oblast::class,
+            'OblastiRada',
+            'NRID',
+            'oblastId'
         );
     }
-    
+
     public function status()
     {
         return $this->belongsTo(Status::class, 'StatusID');
@@ -31,19 +31,19 @@ class NaucniRad extends Model
     public function citira()
     {
         return $this->belongsToMany(
-            NaucniRad::class, 
+            NaucniRad::class,
             'reference',
             'RadID',
-            'CitiraniRadID' 
+            'CitiraniRadID'
         );
     }
 
     public function citiranOdStrane()
     {
         return $this->belongsToMany(
-                NaucniRad::class, 
-                'reference', 
-                'CitiraniRadID', 
+                NaucniRad::class,
+                'reference',
+                'CitiraniRadID',
                 'RadID'
             );
     }

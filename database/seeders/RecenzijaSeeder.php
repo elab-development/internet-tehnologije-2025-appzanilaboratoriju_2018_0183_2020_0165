@@ -11,12 +11,10 @@ use App\Models\Recenzija;
 
 class RecenzijaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
-        // Recenzent moze biti samo korisnik sa tom ulogom, isto pravilo koje store() namece
+
         $recenzenti = User::whereHas('uloge', function ($q) {
             $q->where('uloga.UlogaID', Uloga::RECENZENT);
         })->orderBy('ZapID')->pluck('ZapID');
@@ -41,7 +39,6 @@ class RecenzijaSeeder extends Seeder
                 continue;
             }
 
-            // Kruzna dodela da se recenzije ravnomerno rasporede po recenzentima
             Recenzija::create([
                 'NRID'  => $rad->NRID,
                 'ZapID' => $moguci[$redni % $moguci->count()],
@@ -54,8 +51,7 @@ class RecenzijaSeeder extends Seeder
 
     private function obrisiNeispravne($recenzenti): void
     {
-        // Recenzije na uvezenim radovima, kod korisnika bez uloge Recenzent,
-        // i one gde je recenzent ujedno autor rada koji recenzira
+
         Recenzija::whereHas('naucniRad', function ($q) {
                 $q->whereNotNull('DOI');
             })

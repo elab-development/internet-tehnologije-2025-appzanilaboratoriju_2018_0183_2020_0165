@@ -6,13 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+
     public function up(): void
     {
         Schema::create('NaucniRad', function (Blueprint $table) {
-            $table->id('NRID'); // primarni ključ
+            $table->id('NRID');
             $table->string('naslov');
             $table->text('abstrakt')->nullable();
             $table->integer('godina')->nullable();
@@ -22,9 +20,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('NaucniRad');

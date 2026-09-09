@@ -6,22 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+
     public function up(): void
     {
         Schema::table('NaucniRad', function (Blueprint $table) {
             $table->foreignId('StatusID')
-                  ->after('NRID') 
+                  ->after('NRID')
                   ->constrained('status', 'StatusID')
-                  ->onDelete('cascade'); 
+                  ->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('naucni_rad', function (Blueprint $table) {

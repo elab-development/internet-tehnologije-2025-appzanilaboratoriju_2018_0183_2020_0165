@@ -8,12 +8,10 @@ use App\Models\Uloga;
 
 class UlogaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
-        //U našem sistemu imamo tri ulog (Postoji opcija da dodamo posetioca)
+
         $uloge = [
             ['naziv' => 'Administrator'],
             ['naziv' => 'Recenzent'],

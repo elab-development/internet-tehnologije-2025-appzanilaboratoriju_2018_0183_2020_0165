@@ -16,17 +16,28 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+function odjaviIPreusmeri() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('korisnik')
+  localStorage.removeItem('ulogaId')
+  if (window.location.pathname !== '/prijava') {
+    window.location.href = '/prijava'
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('korisnik')
-      localStorage.removeItem('ulogaId')
-      if (window.location.pathname !== '/prijava') {
-        window.location.href = '/prijava'
-      }
+    const status = error.response?.status
+
+    if (status === 401) {
+      odjaviIPreusmeri()
     }
+
+    if (status === 403 && error.response?.data?.kod === 'pogresna_uloga_u_tokenu') {
+      odjaviIPreusmeri()
+    }
+
     return Promise.reject(error)
   }
 )

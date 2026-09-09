@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    // REGISTRACIJA KORISNIKA
+
     public function register(Request $request)
     {
         $fields = $request->validate([
@@ -19,7 +19,7 @@ class AuthController extends Controller
             'email' => 'required|string|unique:korisnik,email',
             'password' => 'required|string|min:6|confirmed',
             'Biografija' => 'nullable|string',
-            'uloga_id' => 'required|exists:uloga,UlogaID' // Obavezno pri kreiranju
+            'uloga_id' => 'required|exists:uloga,UlogaID'
         ]);
 
         $korisnik = DB::transaction(function () use ($fields) {
@@ -30,7 +30,6 @@ class AuthController extends Controller
                 'Biografija' => $fields['Biografija'] ?? null,
             ]);
 
-            // Povezujemo korisnika sa ulogom u pivot tabeli
             $korisnik->uloge()->attach($fields['uloga_id'], ['Datum' => Carbon::now()]);
 
             return $korisnik;
@@ -42,7 +41,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // LOGIN KORISNIKA
     public function login(Request $request)
     {
         $fields = $request->validate([
@@ -76,10 +74,9 @@ class AuthController extends Controller
         ], 200);
     }
 
-    // LOGOUT KORISNIKA
     public function logout(Request $request)
     {
-        // Brišemo trenutni token kojim je korisnik pristupio
+
         $request->user()->currentAccessToken()->delete();
 
         return response([

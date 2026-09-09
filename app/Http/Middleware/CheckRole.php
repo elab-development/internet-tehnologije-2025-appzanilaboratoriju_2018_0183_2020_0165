@@ -8,18 +8,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
+
 public function handle(Request $request, Closure $next, string $role): Response
     {
-        
+
         if (!$request->user()) {
             return response()->json(['message' => 'Niste prijavljeni.'], 401);
         }
-
 
         $uloga = $request->user()->uloge->firstWhere('Naziv', $role);
 
@@ -33,6 +28,7 @@ public function handle(Request $request, Closure $next, string $role): Response
         if (!$request->user()->tokenCan('uloga:' . $uloga->UlogaID)) {
             return response()->json([
                 'error' => 'Niste prijavljeni u ovoj ulozi',
+                'kod' => 'pogresna_uloga_u_tokenu',
                 'potrebna_uloga' => $role,
                 'poruka' => 'Odjavite se i prijavite ponovo birajući ulogu ' . $role . '.'
             ], 403);

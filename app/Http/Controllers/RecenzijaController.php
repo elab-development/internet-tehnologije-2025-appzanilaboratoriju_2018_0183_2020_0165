@@ -11,17 +11,12 @@ use App\Http\Resources\RecenzijaResource;
 
 class RecenzijaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
         return Recenzija::all();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
@@ -35,25 +30,16 @@ class RecenzijaController extends Controller
         return response()->json($novaRecenzija, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         return Recenzija::findOrFail($id);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        //ne treba nam
+
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $recenzija = Recenzija::findOrFail($id);
@@ -73,25 +59,22 @@ class RecenzijaController extends Controller
 
     public function sacuvajStavkuRecenzije(Request $request, string $id)
     {
-        // Validacija podataka
+
         $validatedData = $request->validate([
             'Komentar'    => 'required|string|min:10',
             'StatusID'    => 'required|exists:status,StatusID',
         ]);
 
-        //Da li ulogovani recenzent zaista poseduje ovu recenziju?
         $recenzija = Recenzija::where('RecenzijaID', $id)
             ->where('ZapID', Auth::id())
             ->firstOrFail();
 
-        //Kreiranje stavke recenzije
         $stavka = StavkaRecenzije::create([
             'RecenzijaID' => $recenzija->RecenzijaID,
             'Komentar'    => $validatedData['Komentar'],
             'StatusID'    => $validatedData['StatusID'],
         ]);
 
-        // Automatsko ažuriranje statusa samog Naučnog rada
         $recenzija->naucniRad()->update([
             'StatusID' => $validatedData['StatusID']
         ]);
@@ -102,5 +85,5 @@ class RecenzijaController extends Controller
             'data'    => $stavka
         ], 201);
     }
-    
+
 }

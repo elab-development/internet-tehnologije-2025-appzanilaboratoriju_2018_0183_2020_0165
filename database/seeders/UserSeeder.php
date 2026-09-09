@@ -20,9 +20,8 @@ class UserSeeder extends Seeder
         ]);
         $testUser->uloge()->attach(1, [
             'datum' => Carbon::now()
-        ]); 
+        ]);
 
-        //istrazivac
         $istrazivac = User::create([
             'ImePrezime' => 'Test Istrazivac',
             'email' => 'istrazivac@gmail.com',
@@ -44,9 +43,6 @@ class UserSeeder extends Seeder
         $recenzent->uloge()->attach(2, [
             'datum' => Carbon::now()
         ]);
-
-
-
 
         User::factory(10)->create();
     }

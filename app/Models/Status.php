@@ -12,7 +12,6 @@ class Status extends Model
     const OBJAVLJEN = 3;
     const ODBIJEN = 4;
 
-    /** @use HasFactory<\Database\Factories\StatusFactory> */
     use HasFactory;
 
     protected $table = 'status';

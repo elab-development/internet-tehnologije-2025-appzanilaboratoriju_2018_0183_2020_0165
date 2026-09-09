@@ -7,13 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class StavkaRecenzije extends Model
 {
-    /** @use HasFactory<\Database\Factories\StavkaRecenzijeFactory> */
+
     use HasFactory;
 
     protected $table = 'StavkaRecenzije';
     protected $primaryKey = 'StavkaID';
 
-    // Samo Komentar i ključevi, jer samo to postoji na slici
     protected $fillable = ['RecenzijaID', 'Komentar', 'StatusID'];
 
     public function recenzija()

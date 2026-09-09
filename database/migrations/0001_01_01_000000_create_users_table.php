@@ -6,16 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+
     public function up(): void
     {
         Schema::create('korisnik', function (Blueprint $table) {
-        $table->id('ZapID'); // Prema tvojoj slici #ZapID
+        $table->id('ZapID');
         $table->string('ImePrezime');
-        $table->string('email')->unique(); // eAdresa
-        $table->string('password');        // Lozinka
+        $table->string('email')->unique();
+        $table->string('password');
         $table->text('Biografija')->nullable();
         $table->timestamps();
     });
@@ -36,9 +34,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('korisnik');

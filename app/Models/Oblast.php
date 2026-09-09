@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Oblast extends Model
 {
-    /** @use HasFactory<\Database\Factories\OblastFactory> */
+
     use HasFactory;
     protected $table = 'Oblast';
 
@@ -23,6 +23,5 @@ class Oblast extends Model
         'NRID'
     );
 }
-
 
 }

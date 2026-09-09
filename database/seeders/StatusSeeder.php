@@ -8,9 +8,7 @@ use App\Models\Status;
 
 class StatusSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
         $statusi = [

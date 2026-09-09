@@ -8,9 +8,7 @@ use App\Models\NaucniRad;
 
 class ReferenceSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
         $radovi = NaucniRad::whereNotNull('DOI')

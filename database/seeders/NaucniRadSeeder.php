@@ -10,9 +10,7 @@ use App\Models\Status;
 
 class NaucniRadSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
         $this->uvezeniRadovi();

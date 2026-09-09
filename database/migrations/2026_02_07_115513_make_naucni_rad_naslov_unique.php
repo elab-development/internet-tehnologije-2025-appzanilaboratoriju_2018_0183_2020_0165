@@ -6,21 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
+
     public function up(): void
     {
-        // Dodajemo UNIQUE ograničenje na kolonu 'naslov'
-        // Ovo sprečava bazu da prihvati dva ista naslova
+
         Schema::table('NaucniRad', function (Blueprint $table) {
             $table->unique('naslov');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('NaucniRad', function (Blueprint $table) {

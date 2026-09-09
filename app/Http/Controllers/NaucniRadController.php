@@ -18,50 +18,39 @@ use Illuminate\Support\Facades\Http;
 
 class NaucniRadController extends Controller
 {
-    /*
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
-        // Kreiramo osnovni upit sa svim potrebnim relacijama
+
         $query = NaucniRad::with(['oblasti', 'status', 'autori']);
 
-        // Proveravamo da li je korisnik poslao parametar 'pretraga' u URL-u
        if ($request->has('pretraga')) {
         $pojam = $request->query('pretraga');
 
         $query->where(function($q) use ($pojam) {
-            // 1. Pretraga po kolonama 'naslov' i 'kljucneReci' u samoj tabeli 'naucniRadovi'
+
             $q->where('kljucneReci', 'LIKE', '%' . $pojam . '%')
             ->orWhere('naslov', 'LIKE', '%' . $pojam . '%')
-            
-            // 2. Pretraga kroz relaciju 'oblasti', ovo je nastavak iste funkcije where
-            ->orWhereHas('oblasti', function($q2) use ($pojam) { // koristimo whereHas ako tražimo preko veze
+
+            ->orWhereHas('oblasti', function($q2) use ($pojam) {
                 $q2->where('naziv', 'LIKE', '%' . $pojam . '%');
             })
-            
-            // 3. Pretraga kroz relaciju 'autori'
+
             ->orWhereHas('autori', function($q3) use ($pojam) {
                 $q3->where('ImePrezime', 'LIKE', '%' . $pojam . '%');
             });
 
-            /*Predlozi:
-                1. Vremenski opseg kao način pretrage (preko kolone godina)
-            */
         });
         }
 
         $radovi = $query->get();
-        
+
         return NaucniRadResource::collection($radovi);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        // Validacija
+
         $validatedData = $request->validate([
             'naslov'      => 'required|string|max:255',
             'abstrakt'    => 'required|string',
@@ -70,18 +59,17 @@ class NaucniRadController extends Controller
             'grupaId'     => 'required|integer',
             'oblasti'     => 'required|array|min:1',
             'oblasti.*'   => 'exists:oblast,oblastId',
-            'autori'      => 'nullable|array|max:2', // Maksimum 2 dodatna koautora!
+            'autori'      => 'nullable|array|max:2',
             'autori.*'    => 'exists:korisnik,ZapID',
         ]);
 
-        // Provera uloge koautora
         if ($request->has('autori') && !empty($request->autori)) {
-            $validniIstrazivaciCount = User::whereIn('ZapID', $request->autori) //brojač koji proverava za svakog
+            $validniIstrazivaciCount = User::whereIn('ZapID', $request->autori)
                 ->whereHas('uloge', function($q) {
-                    $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC); //Da li je navedeni autor istraživač
-                })->count(); //Izbroj broj istraživača
+                    $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
+                })->count();
 
-            if ($validniIstrazivaciCount !== count($request->autori)) { //Da li se poklapa broj navedenih koautora i broj koautora koji su istraživači
+            if ($validniIstrazivaciCount !== count($request->autori)) {
                 return response()->json([
                     'error' => 'Svi koautori moraju imati ulogu Istraživač.'
                 ], 422);
@@ -90,17 +78,13 @@ class NaucniRadController extends Controller
 
         $naucniRad = DB::transaction(function () use ($request, $validatedData) {
 
-            //Kreiranje rada, status odredjuje sistem a ne podnosilac
             $naucniRad = NaucniRad::create(array_merge($validatedData, ['StatusID' => Status::CEKA_RECENZIJU]));
 
-            // Povezivanje oblasti sa radom
             $naucniRad->oblasti()->attach($request->oblasti);
 
-            // Povezivanje autora (Ulogovani + koautori)
-            $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? [])); //Možda su koautori prazan niz
-            $naucniRad->autori()->attach($sviAutori); //Povezujemo autore sa radom (punimo koautorstvo tabelu)
+            $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? []));
+            $naucniRad->autori()->attach($sviAutori);
 
-            // Nasumična dodela recenzenta
             $recenzent = User::whereHas('uloge', function($q) {
                     $q->where('uloga.UlogaID', Uloga::RECENZENT);
                 })
@@ -127,18 +111,21 @@ class NaucniRadController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
-        $rad = NaucniRad::with(['oblasti', 'status', 'autori'])->findOrFail($id);
+        $rad = NaucniRad::with(['oblasti', 'status', 'autori'])
+            ->where('StatusID', Status::OBJAVLJEN)
+            ->find($id);
+
+        if (!$rad) {
+            return response()->json([
+                'message' => 'Objavljen rad sa ovim ID-em ne postoji.'
+            ], 404);
+        }
+
         return new NaucniRadResource($rad);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $rad = NaucniRad::findOrFail($id);
@@ -146,7 +133,7 @@ class NaucniRadController extends Controller
         $validator = Validator::make($request->all(), [
             'naslov'      => 'sometimes|string|max:255',
             'abstrakt'    => 'sometimes|string',
-            'kljucneReci' => 'sometimes|string', // Omogućeno ažuriranje ključnih reči
+            'kljucneReci' => 'sometimes|string',
             'godina'      => 'sometimes|integer',
             'grupaId'     => 'nullable|integer',
             'verzija'     => 'nullable|integer',
@@ -163,10 +150,8 @@ class NaucniRadController extends Controller
             ], 422);
         }
 
-        // Ažuriranje podataka u bazi
         $rad->update($validator->validated());
 
-        // Sinhronizacija Many-to-Many relacija (sync briše stare i dodaje nove veze)
         if ($request->has('oblasti')) {
             $rad->oblasti()->sync($request->oblasti);
         }
@@ -180,14 +165,10 @@ class NaucniRadController extends Controller
         ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $rad = NaucniRad::findOrFail($id);
-        
-        // Eloquent će automatski ukloniti veze iz pivot tabela ako je podešen onDelete cascade u migracijama
+
         $rad->delete();
 
         return response()->json([
@@ -197,37 +178,30 @@ class NaucniRadController extends Controller
 
     public function mojiRadovi()
     {
-        // 1. Uzimamo trenutno ulogovanog korisnika (Istraživača)
+
         $korisnik = Auth::user();
 
-        // 2. Preko relacije 'naucniRadovi' izvlačimo sve njegove radove
-        // Koristimo 'with' da odmah povučemo i oblasti i status
         $radovi = $korisnik->naucniRadovi()
-                        ->with(['oblasti', 'status']) // Učitaj relacije za bolji prikaz
-                        ->orderBy('godina', 'desc') // Najnoviji radovi prvi
+                        ->with(['oblasti', 'status'])
+                        ->orderBy('godina', 'desc')
                         ->get();
 
-        // 3. Vraćamo ih kroz Resource
         return NaucniRadResource::collection($radovi);
     }
 
-    //Funkcija koja prikazuje sve recenzije i stavke recenzije nekog rada.
     public function prikaziRecenziju($id)
     {
-        // Učitavamo rad i SVE njegove recenzije, njihove stavke i autore tih recenzija
+
         $rad = NaucniRad::with(['status', 'recenzije.stavke.status', 'recenzije.korisnik'])->find($id);
 
-        // Ukoliko sistem ne može da pronađe rad preko NRID-a
         if (!$rad) {
             return response()->json(['message' => 'Rad nije pronađen.'], 404);
         }
 
-        // Provera da li je ulogovani korisnik autor rada
         if (!$rad->autori->contains('ZapID', Auth::id())) {
             return response()->json(['message' => 'Niste autor ovog rada.'], 403);
         }
 
-        // Proveravamo da li uopšte ima recenzija u nizu
         if ($rad->recenzije->isEmpty()) {
             return response()->json([
                 'id' => $rad->NRID,
@@ -237,7 +211,7 @@ class NaucniRadController extends Controller
                 'message' => 'Još uvek nema urađenih recenzija za ovaj rad.'
             ], 200);
         }
-        //Ovde zapravo vraćamo sve recenzije i njihove stavke
+
         return response()->json([
             'id' => $rad->NRID,
             'naslov' => $rad->naslov,
@@ -262,43 +236,40 @@ class NaucniRadController extends Controller
 
     public function objavljeniRadovi(Request $request)
     {
-        $query = NaucniRad::with(['autori', 'oblasti']) //With predstavlja eager loading za veze
-            ->where('StatusID', Status::OBJAVLJEN); // Samo objavljeni radovi
+        $query = NaucniRad::with(['autori', 'oblasti'])
+            ->where('StatusID', Status::OBJAVLJEN);
 
-        //Filtriramo po oblasti po ID
         if ($request->has('oblast_id')) {
-            $query->whereHas('oblasti', function($q) use ($request) { // whereHas pretražuje kroz relaciju (Many-to-Many)
-                // Filtriramo po ID-u oblasti u pivot tabeli 'OblastiRada'
+            $query->whereHas('oblasti', function($q) use ($request) {
+
                 $q->where('Oblast.OblastID', $request->oblast_id);
             });
         }
-        
-        //Filter za autore (Preko ID-a korisnika/autora)
+
         if ($request->has('autor_id')) {
             $query->whereHas('autori', function($q) use ($request) {
-                $q->where('Autorstvo.ZapID', $request->autor_id); //Tražimo u Autorstvo tabeli samo radove koji imaju ovog autora
+                $q->where('Autorstvo.ZapID', $request->autor_id);
             });
         }
-        //Filter za ključne reči
+
         if ($request->has('keyword')) {
         $s = $request->query('keyword');
-        // Koristimo % pre i posle stringa da bismo našli pojam bilo gde u tekstu
+
         $query->where('kljucneReci', 'LIKE', '%' . $s . '%');
         }
 
-        $query->orderBy('godina', 'desc'); //Sortiramo da bude prvo najnoviji rad
+        $query->orderBy('godina', 'desc');
 
-        $radovi = $query->get(); //Izvršavamo upit
+        $radovi = $query->get();
 
-        // Ako je lista radova iz odabrane oblasti prazna
         if ($radovi->isEmpty()) {
         return response()->json([
             'success' => true,
             'message' => 'Nažalost, trenutno nema objavljenih radova sa takvim parametrima.',
-            'data' => [] // Vraćamo prazan niz
+            'data' => []
         ], 200);
         }
-        return NaucniRadResource::collection($radovi); //Koristimo Resource da bismo kontrolisali prikaz naučnog rada
+        return NaucniRadResource::collection($radovi);
     }
 
     public function citati(string $id)

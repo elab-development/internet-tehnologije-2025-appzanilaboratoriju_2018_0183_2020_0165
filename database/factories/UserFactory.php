@@ -7,21 +7,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\Uloga;
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
- */
+
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
+
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
@@ -35,9 +26,9 @@ class UserFactory extends Factory
 public function configure()
     {
         return $this->afterCreating(function (User $user) {
-            $ids = Uloga::pluck('UlogaID')->toArray(); // uzmi sve ID-eve
+            $ids = Uloga::pluck('UlogaID')->toArray();
             if (!empty($ids)) {
-                shuffle($ids); // random redosled
+                shuffle($ids);
                 $user->uloge()->attach(array_slice($ids, 0, rand(1, count($ids))), [
                     'Datum' => now()
                 ]);
@@ -45,9 +36,6 @@ public function configure()
         });
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [

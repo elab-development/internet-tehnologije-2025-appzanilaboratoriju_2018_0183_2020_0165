@@ -14,26 +14,18 @@ use Carbon\Carbon;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
         $users = User::with('uloge')->get();
         return UserResource::collection($users);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -46,36 +38,26 @@ class UserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
 
-    
         $korisnik = User::create($validated);
 
         $korisnik->load('uloge');
-    
+
         return response()->json([
             'message' => 'Korisnik uspešno kreiran i uloga dodeljena',
             'user' => new UserResource($korisnik)
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         return User::with('uloge')->findOrFail($id);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
-        //
+
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $user = User::findOrFail($id);
@@ -93,33 +75,41 @@ class UserController extends Controller
         ], 200);
     }
 
-        /**
-         * Remove the specified resource from storage.
-         */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $user = User::findOrFail($id);
+
+        if ((int) $user->ZapID === (int) $request->user()->ZapID) {
+            return response()->json([
+                'message' => 'Ne možete obrisati sopstveni nalog.'
+            ], 422);
+        }
+
+        if ($user->recenzije()->exists() || $user->naucniRadovi()->exists()) {
+            return response()->json([
+                'message' => 'Korisnik je vezan za radove ili recenzije, pa bi njegovo brisanje uklonilo i tu istoriju.'
+            ], 422);
+        }
+
         $user->delete();
 
-        return response()->json(['message' => 'Korinsik obrisan']);
+        return response()->json(['message' => 'Korisnik je obrisan.']);
     }
 
     public function dodeliUlogu(Request $request, string $id) {
-        // 1. Validacija - tražimo da 'uloge' bude niz (array)
+
         $request->validate([
             'uloge' => 'required|array|min:1|max:3',
-            'uloge.*' => 'exists:uloga,UlogaID', // Provera da svaki ID u nizu postoji u tabeli uloga
+            'uloge.*' => 'exists:uloga,UlogaID',
         ]);
 
-        $korisnik = User::findOrFail($id); //Traži korisnika
+        $korisnik = User::findOrFail($id);
 
-        // 2. Priprema podataka za pivot tabelu
         $noveUloge = [];
         foreach ($request->uloge as $idUloge) {
             $noveUloge[$idUloge] = ['Datum' => Carbon::now()];
         }
 
-        // 3. Sync briše sve stare i postavlja samo ove nove
         $korisnik->uloge()->sync($noveUloge);
 
         return response()->json([

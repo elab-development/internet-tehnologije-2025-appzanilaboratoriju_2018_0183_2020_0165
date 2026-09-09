@@ -8,9 +8,7 @@ use App\Models\Oblast;
 
 class OblastSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
     public function run(): void
     {
         $oblasti = [
@@ -24,8 +22,7 @@ class OblastSeeder extends Seeder
 
         foreach ($oblasti as $oblast) {
             Oblast::updateOrCreate(['naziv' => $oblast['naziv']], $oblast);
-            //Trazi u tabeli Oblast red gde je naziv = $oblast['naziv'], ako nadje updateuje
-            //ako ne nadje kreira novi.
+
         }
     }
 }
