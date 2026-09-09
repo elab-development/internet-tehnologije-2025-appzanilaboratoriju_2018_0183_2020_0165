@@ -215,7 +215,7 @@ class NaucniRadController extends Controller
     public function prikaziRecenziju($id)
     {
         // Učitavamo rad i SVE njegove recenzije, njihove stavke i autore tih recenzija
-        $rad = NaucniRad::with(['status', 'recenzije.stavke', 'recenzije.korisnik'])->find($id);
+        $rad = NaucniRad::with(['status', 'recenzije.stavke.status', 'recenzije.korisnik'])->find($id);
 
         // Ukoliko sistem ne može da pronađe rad preko NRID-a
         if (!$rad) {
@@ -230,22 +230,34 @@ class NaucniRadController extends Controller
         // Proveravamo da li uopšte ima recenzija u nizu
         if ($rad->recenzije->isEmpty()) {
             return response()->json([
+                'id' => $rad->NRID,
                 'naslov' => $rad->naslov,
+                'status' => $rad->status->Naziv,
+                'recenzije' => [],
                 'message' => 'Još uvek nema urađenih recenzija za ovaj rad.'
             ], 200);
         }
         //Ovde zapravo vraćamo sve recenzije i njihove stavke
         return response()->json([
-            'rad_naslov' => $rad->naslov,
+            'id' => $rad->NRID,
+            'naslov' => $rad->naslov,
             'status' => $rad->status->Naziv,
-            'sve_recenzije' => $rad->recenzije->map(function($recenzija) {
+            'recenzije' => $rad->recenzije->map(function ($recenzija) {
                 return [
-                    'datum' => $recenzija->Datum,
+                    'id'        => $recenzija->RecenzijaID,
+                    'datum'     => $recenzija->Datum,
                     'recenzent' => $recenzija->korisnik->ImePrezime ?? 'Anonimni recenzent',
-                    'stavke_detaljno' => $recenzija->stavke, // Sve stavke te konkretne recenzije
+                    'stavke'    => $recenzija->stavke->map(function ($stavka) {
+                        return [
+                            'id'       => $stavka->StavkaID,
+                            'komentar' => $stavka->Komentar,
+                            'status'   => $stavka->status->Naziv ?? null,
+                            'datum'    => $stavka->created_at,
+                        ];
+                    })->values(),
                 ];
-            })
-        ]);
+            })->values()
+        ], 200);
     }
 
     public function objavljeniRadovi(Request $request)
