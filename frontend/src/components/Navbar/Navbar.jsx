@@ -40,6 +40,12 @@ export default function Navbar() {
               </NavLink>
             </li>
 
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/istrazivaci">
+                Istraživači
+              </NavLink>
+            </li>
+
             {ulogaId === ULOGE.ISTRAZIVAC && (
               <li className="nav-item">
                 <NavLink className="nav-link" to="/moji-radovi">

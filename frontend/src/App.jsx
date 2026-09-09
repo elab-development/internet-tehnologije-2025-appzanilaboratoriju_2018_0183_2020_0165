@@ -6,6 +6,8 @@ import ZasticenaRuta from './components/ZasticenaRuta'
 import Prijava from './pages/Prijava/Prijava'
 import Radovi from './pages/Radovi/Radovi'
 import RadDetalji from './pages/RadDetalji/RadDetalji'
+import Istrazivaci from './pages/Istrazivaci/Istrazivaci'
+import IstrazivacProfil from './pages/IstrazivacProfil/IstrazivacProfil'
 import MojiRadovi from './pages/MojiRadovi/MojiRadovi'
 import Recenzije from './pages/Recenzije/Recenzije'
 import AdminKorisnici from './pages/AdminKorisnici/AdminKorisnici'
@@ -23,6 +25,8 @@ export default function App() {
             <Route path="/prijava" element={<Prijava />} />
             <Route path="/radovi" element={<Radovi />} />
             <Route path="/radovi/:id" element={<RadDetalji />} />
+            <Route path="/istrazivaci" element={<Istrazivaci />} />
+            <Route path="/istrazivaci/:id" element={<IstrazivacProfil />} />
 
             <Route
               path="/moji-radovi"
