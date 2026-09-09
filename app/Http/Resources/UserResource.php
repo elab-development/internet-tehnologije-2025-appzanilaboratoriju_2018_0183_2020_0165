@@ -11,14 +11,15 @@ class UserResource extends JsonResource
     {
         return [
             'id' => $this->ZapID,
-            'ime_prezime' => $this->ImePrezime,
+            'imePrezime' => $this->ImePrezime,
             'email' => $this->email,
             'biografija' => $this->Biografija,
-            
+
             'uloge' => $this->uloge->map(function ($uloga) {
                 return [
+                    'id' => $uloga->UlogaID,
                     'naziv' => $uloga->Naziv,
-                    'datum_dodele' => $uloga->pivot->Datum,
+                    'datumDodele' => $uloga->pivot->Datum,
                 ];
             }),
         ];
