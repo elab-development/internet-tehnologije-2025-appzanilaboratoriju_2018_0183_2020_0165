@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Uloga;
 use App\Models\Recenzija;
 use App\Models\Status;
+use App\Models\IstorijaCitiranosti;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\NaucniRadResource;
 use Illuminate\Support\Facades\Auth;
@@ -328,7 +329,10 @@ class NaucniRadController extends Controller
         }
 
         $crossRef = Cache::remember('spoljni-citati:' . $rad->DOI, now()->addHours(6), function () use ($rad) {
-            return $this->citatiSaCrossRefa($rad->DOI);
+            $podaci = $this->citatiSaCrossRefa($rad->DOI);
+            $this->zapamtiMerenje($rad, $podaci);
+
+            return $podaci;
         });
 
         return response()->json([
@@ -336,6 +340,44 @@ class NaucniRadController extends Controller
             'naslov'   => $rad->naslov,
             'doi'      => $rad->DOI,
             'crossRef' => $crossRef,
+        ], 200);
+    }
+
+    private function zapamtiMerenje(NaucniRad $rad, array $podaci): void
+    {
+        if (empty($podaci['dostupno']) || !isset($podaci['brojCitata'])) {
+            return;
+        }
+
+        IstorijaCitiranosti::updateOrCreate(
+            ['NRID' => $rad->NRID, 'datum' => now()->toDateString()],
+            ['brojCitata' => $podaci['brojCitata']]
+        );
+    }
+
+    public function istorijaCitiranosti(string $id)
+    {
+        $rad = NaucniRad::where('StatusID', Status::OBJAVLJEN)->find($id);
+
+        if (!$rad) {
+            return response()->json([
+                'message' => 'Objavljen rad sa ovim ID-em ne postoji.'
+            ], 404);
+        }
+
+        $merenja = $rad->istorijaCitiranosti()->orderBy('datum')->get();
+
+        return response()->json([
+            'id'      => $rad->NRID,
+            'naslov'  => $rad->naslov,
+            'doi'     => $rad->DOI,
+            'broj'    => $merenja->count(),
+            'merenja' => $merenja->map(function ($merenje) {
+                return [
+                    'datum'      => $merenje->datum->toDateString(),
+                    'brojCitata' => $merenje->brojCitata,
+                ];
+            })->values(),
         ], 200);
     }
 

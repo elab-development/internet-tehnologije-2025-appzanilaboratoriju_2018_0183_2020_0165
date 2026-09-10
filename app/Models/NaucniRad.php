@@ -63,4 +63,9 @@ class NaucniRad extends Model
         return $this->hasMany(Recenzija::class, 'NRID', 'NRID');
     }
 
+    public function istorijaCitiranosti()
+    {
+        return $this->hasMany(IstorijaCitiranosti::class, 'NRID', 'NRID');
+    }
+
 }
