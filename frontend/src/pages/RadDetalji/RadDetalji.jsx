@@ -25,6 +25,7 @@ export default function RadDetalji() {
   const [spoljni, setSpoljni] = useState(null)
   const [spoljniPoruka, setSpoljniPoruka] = useState(null)
   const [srodni, setSrodni] = useState(null)
+  const [istorija, setIstorija] = useState([])
 
   useEffect(() => {
     let otkazano = false
@@ -80,6 +81,11 @@ export default function RadDetalji() {
       .get(`/radovi/${id}/srodni-radovi`)
       .then(({ data }) => !otkazano && setSrodni(data?.srodni ?? null))
       .catch(() => !otkazano && setSrodni(null))
+
+    api
+      .get(`/radovi/${id}/istorija-citiranosti`)
+      .then(({ data }) => !otkazano && setIstorija(data?.merenja ?? []))
+      .catch(() => !otkazano && setIstorija([]))
 
     return () => {
       otkazano = true
@@ -237,6 +243,29 @@ export default function RadDetalji() {
                       </>
                     )}
                   </dl>
+
+                  {istorija.length > 0 && (
+                    <div className="mt-3 pt-3 border-top">
+                      <h6 className="text-uppercase text-secondary small">Istorija merenja</h6>
+                      <ul className="list-unstyled small mb-0">
+                        {istorija.map((merenje) => (
+                          <li
+                            key={merenje.datum}
+                            className="d-flex justify-content-between border-bottom py-1"
+                          >
+                            <span className="text-secondary">{merenje.datum}</span>
+                            <span className="fw-semibold">{merenje.brojCitata}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {istorija.length === 1 && (
+                        <p className="text-secondary small mt-2 mb-0">
+                          Sistem beleži citiranost pri svakom osvežavanju podataka sa CrossRef-a, pa
+                          se niz merenja popunjava vremenom.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <Poruka vrsta="prazno">
