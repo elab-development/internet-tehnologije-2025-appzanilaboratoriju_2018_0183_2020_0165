@@ -94,7 +94,7 @@ export default function Radovi() {
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <div className="row g-3 align-items-end">
-            <div className="col-12 col-md-5">
+            <div className="col-12 col-lg-5">
               <Input
                 naziv="pretraga"
                 labela="Pretraga po ključnim rečima"
@@ -104,7 +104,7 @@ export default function Radovi() {
               />
             </div>
 
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-sm-6 col-lg-3">
               <Select
                 naziv="oblast"
                 labela="Oblast"
@@ -118,7 +118,7 @@ export default function Radovi() {
               />
             </div>
 
-            <div className="col-12 col-md-3">
+            <div className="col-12 col-sm-6 col-lg-3">
               <Select
                 naziv="sortiranje"
                 labela="Sortiraj"
@@ -128,8 +128,13 @@ export default function Radovi() {
               />
             </div>
 
-            <div className="col-12 col-md-1 mb-3">
-              <Button varijanta="outline" onemoguceno={!imaFiltera} onClick={ponistiFiltere}>
+            <div className="col-12 col-lg-1 mb-3">
+              <Button
+                varijanta="outline"
+                onemoguceno={!imaFiltera}
+                onClick={ponistiFiltere}
+                dodatneKlase="w-100"
+              >
                 Poništi
               </Button>
             </div>

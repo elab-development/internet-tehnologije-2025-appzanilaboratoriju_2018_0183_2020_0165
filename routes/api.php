@@ -18,6 +18,7 @@ Route::get('/istrazivaci/{id}', [UserController::class, 'profilIstrazivaca'])->w
 Route::get('/radovi/{id}/citati', [NaucniRadController::class, 'citati']);
 Route::get('/radovi/{id}/spoljni-citati', [NaucniRadController::class, 'spoljniCitati']);
 Route::get('/radovi/{id}/srodni-radovi', [NaucniRadController::class, 'srodniRadovi']);
+Route::get('/radovi/{id}/istorija-citiranosti', [NaucniRadController::class, 'istorijaCitiranosti']);
 
 Route::middleware('auth:sanctum')->group(function () {
 

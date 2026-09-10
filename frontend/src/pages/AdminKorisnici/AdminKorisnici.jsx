@@ -205,7 +205,7 @@ export default function AdminKorisnici() {
                       </div>
                     </td>
                     <td className="text-end">
-                      <div className="d-flex gap-2 justify-content-end">
+                      <div className="d-flex gap-2 justify-content-end flex-wrap">
                         <Button varijanta="outline" velicina="mala" onClick={() => otvoriUloge(k)}>
                           Uloge
                         </Button>
