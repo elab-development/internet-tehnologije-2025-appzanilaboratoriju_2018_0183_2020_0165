@@ -51,7 +51,8 @@ class RecenzijaController extends Controller
     public function dodeljeniRadovi()
     {
         $recenzije = Recenzija::where('ZapID', Auth::id())
-            ->with(['naucniRad.status', 'naucniRad.oblasti', 'naucniRad.autori'])
+            ->with(['naucniRad.status', 'naucniRad.oblasti', 'naucniRad.autori', 'stavke.status'])
+            ->orderByDesc('Datum')
             ->get();
 
         return RecenzijaResource::collection($recenzije);
