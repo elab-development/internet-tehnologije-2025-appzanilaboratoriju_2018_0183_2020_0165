@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RecenzijaSeeder::class,
             StavkaRecenzijeSeeder::class,
             ReferenceSeeder::class,
+            FajlRadaSeeder::class,
         ]);
     }
 }
