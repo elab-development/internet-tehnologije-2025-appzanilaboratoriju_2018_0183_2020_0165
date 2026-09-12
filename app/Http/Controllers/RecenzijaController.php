@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Recenzija;
 use App\Models\StavkaRecenzije;
+use App\Models\Status;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\NaucniRadResource;
@@ -69,6 +70,12 @@ class RecenzijaController extends Controller
         $recenzija = Recenzija::where('RecenzijaID', $id)
             ->where('ZapID', Auth::id())
             ->firstOrFail();
+
+        if ($recenzija->naucniRad->StatusID === Status::OBJAVLJEN) {
+            return response()->json([
+                'message' => 'Rad je već objavljen pa se njegov status više ne može menjati.'
+            ], 422);
+        }
 
         $stavka = StavkaRecenzije::create([
             'RecenzijaID' => $recenzija->RecenzijaID,
