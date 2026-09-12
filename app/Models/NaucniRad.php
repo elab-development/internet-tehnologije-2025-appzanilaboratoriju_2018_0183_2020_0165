@@ -10,7 +10,7 @@ class NaucniRad extends Model
 
     use HasFactory;
     protected $table = 'NaucniRad';
-    protected $fillable = ['naslov','abstrakt', 'kljucneReci', 'godina', 'DOI', 'spoljniAutori', 'grupaId', 'verzija', 'StatusID'];
+    protected $fillable = ['naslov','abstrakt', 'kljucneReci', 'godina', 'DOI', 'spoljniAutori', 'putanjaFajla', 'imeFajla', 'grupaId', 'verzija', 'StatusID'];
 
     protected $primaryKey = 'NRID';
 
@@ -66,6 +66,11 @@ class NaucniRad extends Model
     public function istorijaCitiranosti()
     {
         return $this->hasMany(IstorijaCitiranosti::class, 'NRID', 'NRID');
+    }
+
+    public function verzije()
+    {
+        return $this->hasMany(NaucniRad::class, 'grupaId', 'grupaId');
     }
 
 }
