@@ -6,6 +6,7 @@ import StatusBedz from '../../components/StatusBedz/StatusBedz'
 import Poruka from '../../components/Poruka/Poruka'
 import Ucitavanje from '../../components/Ucitavanje/Ucitavanje'
 import Button from '../../components/Button/Button'
+import PdfPregled from '../../components/PdfPregled/PdfPregled'
 
 function prikaziAutore(rad) {
   if (rad?.spoljniAutori) return rad.spoljniAutori
@@ -26,6 +27,7 @@ export default function RadDetalji() {
   const [spoljniPoruka, setSpoljniPoruka] = useState(null)
   const [srodni, setSrodni] = useState(null)
   const [istorija, setIstorija] = useState([])
+  const [pdfRad, setPdfRad] = useState(null)
 
   useEffect(() => {
     let otkazano = false
@@ -174,6 +176,19 @@ export default function RadDetalji() {
                   </a>
                 </>
               )}
+
+              <div className="mt-4 pt-3 border-top">
+                {rad?.imaFajl ? (
+                  <>
+                    <Button onClick={() => setPdfRad(rad)}>Pročitaj rad (PDF)</Button>
+                    <span className="text-secondary small ms-2">{rad.imeFajla}</span>
+                  </>
+                ) : (
+                  <p className="text-secondary small mb-0">
+                    Autor nije priložio PDF ovog rada.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -320,6 +335,8 @@ export default function RadDetalji() {
           </div>
         </div>
       </div>
+
+      <PdfPregled rad={pdfRad} naZatvaranje={() => setPdfRad(null)} />
     </div>
   )
 }

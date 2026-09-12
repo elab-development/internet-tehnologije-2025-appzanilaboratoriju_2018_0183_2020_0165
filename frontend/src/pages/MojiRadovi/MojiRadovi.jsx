@@ -9,6 +9,7 @@ import StatusBedz from '../../components/StatusBedz/StatusBedz'
 import Pagination from '../../components/Pagination/Pagination'
 import Poruka from '../../components/Poruka/Poruka'
 import Ucitavanje from '../../components/Ucitavanje/Ucitavanje'
+import PdfPregled from '../../components/PdfPregled/PdfPregled'
 
 const PO_STRANI = 5
 
@@ -38,6 +39,7 @@ export default function MojiRadovi() {
   const [cuva, setCuva] = useState(false)
 
   const [verzijeRada, setVerzijeRada] = useState(null)
+  const [pdfRad, setPdfRad] = useState(null)
   const [verzije, setVerzije] = useState([])
 
   const { podaci, ucitava, greska, strana, ukupnoStrana, ukupnoStavki, promeniStranu, osvezi } =
@@ -157,13 +159,10 @@ export default function MojiRadovi() {
 
     try {
       if (radKojiSeMenja) {
-        await api.put(`/radovi/${radKojiSeMenja.id}`, {
-          naslov: forma.naslov,
-          abstrakt: forma.abstrakt,
-          kljucneReci: forma.kljucneReci,
-          godina: Number(forma.godina),
-          ...(forma.oblasti.length > 0 ? { oblasti: forma.oblasti } : {}),
-        })
+        const telo = napraviTeloZahteva()
+        telo.append('_method', 'PUT')
+
+        await api.post(`/radovi/${radKojiSeMenja.id}`, telo)
         setObavestenje({ vrsta: 'uspeh', tekst: 'Nacrt je izmenjen.' })
       } else if (radZaNovuVerziju) {
         await api.post(`/radovi/${radZaNovuVerziju.id}/verzija`, napraviTeloZahteva())
@@ -211,21 +210,6 @@ export default function MojiRadovi() {
     }
   }
 
-  const preuzmiFajl = async (rad) => {
-    try {
-      const odgovor = await api.get(`/radovi/${rad.id}/fajl`, { responseType: 'blob' })
-      const adresa = window.URL.createObjectURL(new Blob([odgovor.data]))
-      const veza = document.createElement('a')
-      veza.href = adresa
-      veza.download = rad.imeFajla ?? 'rad.pdf'
-      document.body.appendChild(veza)
-      veza.click()
-      veza.remove()
-      window.URL.revokeObjectURL(adresa)
-    } catch {
-      setObavestenje({ vrsta: 'greska', tekst: 'Preuzimanje fajla nije uspelo.' })
-    }
-  }
 
   if (ucitava) {
     return (
@@ -332,9 +316,9 @@ export default function MojiRadovi() {
                         <Button
                           varijanta="outline"
                           velicina="mala"
-                          onClick={() => preuzmiFajl(rad)}
+                          onClick={() => setPdfRad(rad)}
                         >
-                          Preuzmi fajl
+                          Pročitaj rad (PDF)
                         </Button>
                       )}
                     </div>
@@ -530,6 +514,8 @@ export default function MojiRadovi() {
           </ul>
         )}
       </Modal>
+
+      <PdfPregled rad={pdfRad} naZatvaranje={() => setPdfRad(null)} />
     </div>
   )
 }

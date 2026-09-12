@@ -9,6 +9,7 @@ import StatusBedz from '../../components/StatusBedz/StatusBedz'
 import Pagination from '../../components/Pagination/Pagination'
 import Poruka from '../../components/Poruka/Poruka'
 import Ucitavanje from '../../components/Ucitavanje/Ucitavanje'
+import PdfPregled from '../../components/PdfPregled/PdfPregled'
 
 const PO_STRANI = 5
 
@@ -48,6 +49,7 @@ export default function Recenzije() {
   const [greskeForme, setGreskeForme] = useState({})
   const [cuva, setCuva] = useState(false)
   const [obavestenje, setObavestenje] = useState(null)
+  const [pdfRad, setPdfRad] = useState(null)
 
   const { podaci, ucitava, greska, strana, ukupnoStrana, ukupnoStavki, promeniStranu, osvezi } =
     usePaginatedFetch('/recenzije/moje', {}, PO_STRANI)
@@ -181,8 +183,18 @@ export default function Recenzije() {
                   </div>
                 )}
 
-                <div className="mt-3">
+                <div className="mt-3 d-flex flex-wrap gap-2">
                   <Button onClick={() => otvoriOcenjivanje(stavka)}>Oceni rad</Button>
+
+                  {rad?.imaFajl ? (
+                    <Button varijanta="outline" onClick={() => setPdfRad(rad)}>
+                      Pročitaj rad (PDF)
+                    </Button>
+                  ) : (
+                    <span className="text-secondary small align-self-center">
+                      Autor nije priložio PDF
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -245,6 +257,8 @@ export default function Recenzije() {
           Svaka ocena se čuva kao nova stavka recenzije. Ranije ocene se ne menjaju ni brišu.
         </Poruka>
       </Modal>
+
+      <PdfPregled rad={pdfRad} naZatvaranje={() => setPdfRad(null)} />
     </div>
   )
 }
