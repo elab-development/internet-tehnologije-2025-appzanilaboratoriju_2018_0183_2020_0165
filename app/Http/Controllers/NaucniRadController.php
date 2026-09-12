@@ -168,6 +168,7 @@ class NaucniRadController extends Controller
             'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'array|max:2',
             'autori.*'    => 'exists:korisnik,ZapID',
+            'fajl'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -190,8 +191,14 @@ class NaucniRadController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $validator, $rad) {
-            $rad->update($validator->validated());
+        $stariFajl = $rad->putanjaFajla;
+        $podaciFajla = $this->sacuvajFajl($request);
+
+        DB::transaction(function () use ($request, $validator, $rad, $podaciFajla) {
+            $izmene = $validator->validated();
+            unset($izmene['fajl']);
+
+            $rad->update(array_merge($izmene, $podaciFajla));
 
             if ($request->has('oblasti')) {
                 $rad->oblasti()->sync($request->oblasti);
@@ -203,6 +210,10 @@ class NaucniRadController extends Controller
             }
         });
 
+        if (!empty($podaciFajla) && $stariFajl) {
+            $this->obrisiFajl($stariFajl);
+        }
+
         return response()->json([
             'poruka' => 'Rad uspešno ažuriran!',
             'podaci' => new NaucniRadResource($rad->load(['status', 'oblasti', 'autori']))
@@ -213,7 +224,13 @@ class NaucniRadController extends Controller
     {
         $rad = NaucniRad::findOrFail($id);
 
+        $putanjaFajla = $rad->putanjaFajla;
+
         $rad->delete();
+
+        if ($putanjaFajla) {
+            $this->obrisiFajl($putanjaFajla);
+        }
 
         return response()->json([
             'poruka' => 'Naučni rad je trajno uklonjen iz baze.'
@@ -412,6 +429,13 @@ class NaucniRadController extends Controller
         ];
     }
 
+    private function obrisiFajl(string $putanja): void
+    {
+        if (Storage::disk('local')->exists($putanja)) {
+            Storage::disk('local')->delete($putanja);
+        }
+    }
+
     public function preuzmiFajl(string $id)
     {
         $rad = NaucniRad::with('autori', 'recenzije')->find($id);
@@ -445,7 +469,15 @@ class NaucniRadController extends Controller
             return true;
         }
 
-        return $rad->recenzije->contains('ZapID', $korisnikId);
+        if ($rad->recenzije->contains('ZapID', $korisnikId)) {
+            return true;
+        }
+
+        return User::where('ZapID', $korisnikId)
+            ->whereHas('uloge', function ($q) {
+                $q->where('uloga.UlogaID', Uloga::ADMIN);
+            })
+            ->exists();
     }
 
     public function verzije(string $id)
