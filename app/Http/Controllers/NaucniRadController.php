@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class NaucniRadController extends Controller
 {
@@ -57,11 +58,11 @@ class NaucniRadController extends Controller
             'abstrakt'    => 'required|string',
             'kljucneReci' => 'required|string',
             'godina'      => 'required|integer',
-            'grupaId'     => 'required|integer',
             'oblasti'     => 'required|array|min:1',
             'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'nullable|array|max:2',
             'autori.*'    => 'exists:korisnik,ZapID',
+            'fajl'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
         if ($request->has('autori') && !empty($request->autori)) {
@@ -77,9 +78,17 @@ class NaucniRadController extends Controller
             }
         }
 
-        $naucniRad = DB::transaction(function () use ($request, $validatedData) {
+        $podaciFajla = $this->sacuvajFajl($request);
 
-            $naucniRad = NaucniRad::create(array_merge($validatedData, ['StatusID' => Status::CEKA_RECENZIJU]));
+        $naucniRad = DB::transaction(function () use ($request, $validatedData, $podaciFajla) {
+
+            unset($validatedData['fajl']);
+
+            $naucniRad = NaucniRad::create(array_merge($validatedData, $podaciFajla, [
+                'StatusID' => Status::CEKA_RECENZIJU,
+                'grupaId'  => (int) NaucniRad::max('grupaId') + 1,
+                'verzija'  => 1,
+            ]));
 
             $naucniRad->oblasti()->attach($request->oblasti);
 
@@ -129,18 +138,35 @@ class NaucniRadController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $rad = NaucniRad::findOrFail($id);
+        $rad = NaucniRad::with('autori')->findOrFail($id);
+
+        if (!$rad->autori->contains('ZapID', Auth::id())) {
+            return response()->json([
+                'message' => 'Niste autor ovog rada.'
+            ], 403);
+        }
+
+        if ($rad->StatusID === Status::OBJAVLJEN) {
+            return response()->json([
+                'message' => 'Objavljen rad se ne može menjati. Napravite novu verziju rada.'
+            ], 422);
+        }
+
+        if ($rad->StatusID === Status::CEKA_RECENZIJU) {
+            return response()->json([
+                'message' => 'Rad je poslat na recenziju pa se više ne može menjati.'
+            ], 422);
+        }
 
         $validator = Validator::make($request->all(), [
             'naslov'      => 'sometimes|string|max:255',
             'abstrakt'    => 'sometimes|string',
             'kljucneReci' => 'sometimes|string',
             'godina'      => 'sometimes|integer',
-            'grupaId'     => 'nullable|integer',
-            'verzija'     => 'nullable|integer',
-            'oblasti'     => 'array',
+            'StatusID'    => 'sometimes|in:' . Status::NACRT . ',' . Status::CEKA_RECENZIJU,
+            'oblasti'     => 'array|min:1',
             'oblasti.*'   => 'exists:oblast,oblastId',
-            'autori'      => 'array',
+            'autori'      => 'array|max:2',
             'autori.*'    => 'exists:korisnik,ZapID',
         ]);
 
@@ -151,14 +177,31 @@ class NaucniRadController extends Controller
             ], 422);
         }
 
-        $rad->update($validator->validated());
+        if ($request->has('autori') && !empty($request->autori)) {
+            $validniIstrazivaciCount = User::whereIn('ZapID', $request->autori)
+                ->whereHas('uloge', function($q) {
+                    $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
+                })->count();
 
-        if ($request->has('oblasti')) {
-            $rad->oblasti()->sync($request->oblasti);
+            if ($validniIstrazivaciCount !== count($request->autori)) {
+                return response()->json([
+                    'error' => 'Svi koautori moraju imati ulogu Istraživač.'
+                ], 422);
+            }
         }
-        if ($request->has('autori')) {
-            $rad->autori()->sync($request->autori);
-        }
+
+        DB::transaction(function () use ($request, $validator, $rad) {
+            $rad->update($validator->validated());
+
+            if ($request->has('oblasti')) {
+                $rad->oblasti()->sync($request->oblasti);
+            }
+
+            if ($request->has('autori')) {
+                $sviAutori = array_unique(array_merge([Auth::id()], $request->autori));
+                $rad->autori()->sync($sviAutori);
+            }
+        });
 
         return response()->json([
             'poruka' => 'Rad uspešno ažuriran!',
@@ -353,6 +396,145 @@ class NaucniRadController extends Controller
             ['NRID' => $rad->NRID, 'datum' => now()->toDateString()],
             ['brojCitata' => $podaci['brojCitata']]
         );
+    }
+
+    private function sacuvajFajl(Request $request): array
+    {
+        if (!$request->hasFile('fajl')) {
+            return [];
+        }
+
+        $fajl = $request->file('fajl');
+
+        return [
+            'putanjaFajla' => $fajl->store('radovi', 'local'),
+            'imeFajla'     => $fajl->getClientOriginalName(),
+        ];
+    }
+
+    public function preuzmiFajl(string $id)
+    {
+        $rad = NaucniRad::with('autori', 'recenzije')->find($id);
+
+        if (!$rad) {
+            return response()->json(['message' => 'Rad sa ovim ID-em ne postoji.'], 404);
+        }
+
+        if (empty($rad->putanjaFajla) || !Storage::disk('local')->exists($rad->putanjaFajla)) {
+            return response()->json(['message' => 'Za ovaj rad nije priložen fajl.'], 404);
+        }
+
+        if ($rad->StatusID !== Status::OBJAVLJEN && !$this->smeDaVidiFajl($rad)) {
+            return response()->json([
+                'message' => 'Fajl neobjavljenog rada mogu da preuzmu samo autori i dodeljeni recenzent.'
+            ], 403);
+        }
+
+        return Storage::disk('local')->download($rad->putanjaFajla, $rad->imeFajla);
+    }
+
+    private function smeDaVidiFajl(NaucniRad $rad): bool
+    {
+        $korisnikId = Auth::guard('sanctum')->id();
+
+        if (!$korisnikId) {
+            return false;
+        }
+
+        if ($rad->autori->contains('ZapID', $korisnikId)) {
+            return true;
+        }
+
+        return $rad->recenzije->contains('ZapID', $korisnikId);
+    }
+
+    public function verzije(string $id)
+    {
+        $rad = NaucniRad::find($id);
+
+        if (!$rad) {
+            return response()->json(['message' => 'Rad sa ovim ID-em ne postoji.'], 404);
+        }
+
+        $verzije = NaucniRad::where('grupaId', $rad->grupaId)
+            ->with('status')
+            ->orderBy('verzija')
+            ->get();
+
+        return response()->json([
+            'grupaId' => $rad->grupaId,
+            'broj'    => $verzije->count(),
+            'verzije' => $verzije->map(function ($verzija) {
+                return [
+                    'id'      => $verzija->NRID,
+                    'verzija' => $verzija->verzija,
+                    'naslov'  => $verzija->naslov,
+                    'godina'  => $verzija->godina,
+                    'status'  => $verzija->status->Naziv,
+                ];
+            })->values(),
+        ], 200);
+    }
+
+    public function novaVerzija(Request $request, string $id)
+    {
+        $stari = NaucniRad::with('autori', 'oblasti')->findOrFail($id);
+
+        if (!$stari->autori->contains('ZapID', Auth::id())) {
+            return response()->json(['message' => 'Niste autor ovog rada.'], 403);
+        }
+
+        if ($stari->StatusID !== Status::OBJAVLJEN) {
+            return response()->json([
+                'message' => 'Nova verzija se pravi samo na osnovu objavljenog rada.'
+            ], 422);
+        }
+
+        $validatedData = $request->validate([
+            'naslov'      => 'required|string|max:255',
+            'abstrakt'    => 'required|string',
+            'kljucneReci' => 'required|string',
+            'godina'      => 'required|integer',
+            'fajl'        => 'nullable|file|mimes:pdf|max:10240',
+        ]);
+
+        $podaciFajla = $this->sacuvajFajl($request);
+
+        $nova = DB::transaction(function () use ($stari, $validatedData, $podaciFajla) {
+
+            unset($validatedData['fajl']);
+
+            $nova = NaucniRad::create(array_merge($validatedData, $podaciFajla, [
+                'StatusID' => Status::CEKA_RECENZIJU,
+                'grupaId'  => $stari->grupaId,
+                'verzija'  => (int) NaucniRad::where('grupaId', $stari->grupaId)->max('verzija') + 1,
+            ]));
+
+            $nova->oblasti()->attach($stari->oblasti->pluck('oblastId'));
+            $nova->autori()->attach($stari->autori->pluck('ZapID'));
+
+            $recenzent = User::whereHas('uloge', function ($q) {
+                    $q->where('uloga.UlogaID', Uloga::RECENZENT);
+                })
+                ->whereNotIn('ZapID', $stari->autori->pluck('ZapID'))
+                ->inRandomOrder()
+                ->first();
+
+            if ($recenzent) {
+                Recenzija::create([
+                    'NRID'  => $nova->NRID,
+                    'ZapID' => $recenzent->ZapID,
+                    'Datum' => now(),
+                ]);
+            }
+
+            return $nova;
+        });
+
+        return response()->json([
+            'poruka' => 'Nova verzija rada je kreirana i poslata na recenziju.',
+            'podaci' => new NaucniRadResource($nova->load(['oblasti', 'status', 'autori'])),
+        ], 201);
     }
 
     public function istorijaCitiranosti(string $id)

@@ -19,6 +19,8 @@ Route::get('/radovi/{id}/citati', [NaucniRadController::class, 'citati']);
 Route::get('/radovi/{id}/spoljni-citati', [NaucniRadController::class, 'spoljniCitati']);
 Route::get('/radovi/{id}/srodni-radovi', [NaucniRadController::class, 'srodniRadovi']);
 Route::get('/radovi/{id}/istorija-citiranosti', [NaucniRadController::class, 'istorijaCitiranosti']);
+Route::get('/radovi/{id}/verzije', [NaucniRadController::class, 'verzije']);
+Route::get('/radovi/{id}/fajl', [NaucniRadController::class, 'preuzmiFajl']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -44,6 +46,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/radovi', [NaucniRadController::class, 'store']);
         Route::get('/radovi/moji', [NaucniRadController::class, 'mojiRadovi']);
+        Route::put('/radovi/{id}', [NaucniRadController::class, 'update'])->where('id', '[0-9]+');
+        Route::post('/radovi/{id}/verzija', [NaucniRadController::class, 'novaVerzija']);
         Route::get('/radovi/{id}/recenzije', [NaucniRadController::class, 'prikaziRecenziju']);
 
     });
