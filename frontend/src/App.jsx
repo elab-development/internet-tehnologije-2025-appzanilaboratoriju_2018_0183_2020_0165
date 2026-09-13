@@ -11,6 +11,7 @@ import IstrazivacProfil from './pages/IstrazivacProfil/IstrazivacProfil'
 import MojiRadovi from './pages/MojiRadovi/MojiRadovi'
 import Recenzije from './pages/Recenzije/Recenzije'
 import AdminKorisnici from './pages/AdminKorisnici/AdminKorisnici'
+import AdminRadovi from './pages/AdminRadovi/AdminRadovi'
 import AdminStatistika from './pages/AdminStatistika/AdminStatistika'
 
 export default function App() {
@@ -51,6 +52,15 @@ export default function App() {
               element={
                 <ZasticenaRuta dozvoljenaUloga={ULOGE.ADMINISTRATOR}>
                   <AdminKorisnici />
+                </ZasticenaRuta>
+              }
+            />
+
+            <Route
+              path="/admin/radovi"
+              element={
+                <ZasticenaRuta dozvoljenaUloga={ULOGE.ADMINISTRATOR}>
+                  <AdminRadovi />
                 </ZasticenaRuta>
               }
             />

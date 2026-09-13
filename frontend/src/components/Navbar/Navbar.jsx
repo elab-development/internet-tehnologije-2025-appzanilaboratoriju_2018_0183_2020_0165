@@ -70,6 +70,11 @@ export default function Navbar() {
                   </NavLink>
                 </li>
                 <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/radovi">
+                    Svi radovi
+                  </NavLink>
+                </li>
+                <li className="nav-item">
                   <NavLink className="nav-link" to="/admin/statistika">
                     Statistika
                   </NavLink>
