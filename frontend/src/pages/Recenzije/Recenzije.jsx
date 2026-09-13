@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 import usePaginatedFetch from '../../hooks/usePaginatedFetch'
@@ -7,13 +7,14 @@ import Input from '../../components/Input/Input'
 import Select from '../../components/Select/Select'
 import Button from '../../components/Button/Button'
 import StatusBedz from '../../components/StatusBedz/StatusBedz'
-import Pagination from '../../components/Pagination/Pagination'
 import Poruka from '../../components/Poruka/Poruka'
 import Ucitavanje from '../../components/Ucitavanje/Ucitavanje'
 import AutoriRada from '../../components/AutoriRada/AutoriRada'
 import PdfPregled from '../../components/PdfPregled/PdfPregled'
 
 const OBJAVLJEN = 'Objavljen'
+const CEKA_RECENZIJU = 'Čeka recenziju'
+const NACRT = 'Nacrt'
 
 const PO_STRANI = 5
 
@@ -43,8 +44,18 @@ export default function Recenzije() {
   const [obavestenje, setObavestenje] = useState(null)
   const [pdfRad, setPdfRad] = useState(null)
 
-  const { podaci, ucitava, greska, strana, ukupnoStrana, ukupnoStavki, promeniStranu, osvezi } =
+  const { sviPodaci, ucitava, greska, ukupnoStavki, osvezi } =
     usePaginatedFetch('/recenzije/moje', {}, PO_STRANI)
+
+  const zaOcenu = useMemo(
+    () => sviPodaci.filter((stavka) => stavka.naucniRad?.status === CEKA_RECENZIJU),
+    [sviPodaci]
+  )
+
+  const zavrsene = useMemo(
+    () => sviPodaci.filter((stavka) => stavka.naucniRad?.status !== CEKA_RECENZIJU),
+    [sviPodaci]
+  )
 
   const otvoriOcenjivanje = (stavka) => {
     setRecenzija(stavka)
@@ -92,6 +103,103 @@ export default function Recenzije() {
     }
   }
 
+  const porukaZaZavrsenu = (status) => {
+    if (status === OBJAVLJEN) {
+      return 'Rad je objavljen. Recenzija je završena.'
+    }
+
+    if (status === NACRT) {
+      return 'Vraćen autoru na doradu. Kada ga ponovo preda, vratiće se u spisak za ocenu.'
+    }
+
+    return 'Rad je odbijen. Ako ga autor ispravi i ponovo preda, vratiće se u spisak za ocenu.'
+  }
+
+  const karticaRecenzije = (stavka) => {
+    const rad = stavka.naucniRad
+    const istorija = stavka.stavke ?? []
+    const cekaOcenu = rad?.status === CEKA_RECENZIJU
+
+    return (
+      <div className="card shadow-sm" key={stavka.id}>
+        <div className="card-body">
+          <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <h5 className="card-title mb-0">
+              {rad?.status === OBJAVLJEN ? (
+                <Link to={`/radovi/${rad.id}`} className="text-decoration-none">
+                  {rad.naslov}
+                </Link>
+              ) : (
+                (rad?.naslov ?? 'Rad nije dostupan')
+              )}
+            </h5>
+            <StatusBedz status={rad?.status} />
+          </div>
+
+          <p className="text-secondary small mb-2">
+            <AutoriRada rad={rad} />
+            {rad?.godina && <span className="ms-2">· {rad.godina}</span>}
+            <span className="ms-2">· dodeljeno {formatirajDatum(stavka.datumDodele)}</span>
+          </p>
+
+          {rad?.abstrakt && <p className="card-text small">{rad.abstrakt}</p>}
+
+          {Array.isArray(rad?.oblasti) && rad.oblasti.length > 0 && (
+            <div className="d-flex flex-wrap gap-1 mb-3">
+              {rad.oblasti.map((oblast) => (
+                <span key={oblast} className="badge bg-light text-dark border">
+                  {oblast}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {istorija.length > 0 && (
+            <div className="border-top pt-3 mt-2">
+              <h6 className="text-secondary small text-uppercase mb-2">
+                Istorija ocena ({istorija.length})
+              </h6>
+
+              <ul className="list-unstyled mb-0">
+                {istorija.map((ocenaIzIstorije) => (
+                  <li key={ocenaIzIstorije.id} className="mb-2">
+                    <div className="d-flex align-items-center gap-2 mb-1">
+                      <StatusBedz status={ocenaIzIstorije.status} />
+                      <span className="text-secondary small">
+                        {formatirajDatum(ocenaIzIstorije.datum)}
+                      </span>
+                    </div>
+                    <p className="small mb-0">{ocenaIzIstorije.komentar}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-3 d-flex flex-wrap gap-2">
+            {cekaOcenu ? (
+              <Button onClick={() => otvoriOcenjivanje(stavka)}>Oceni rad</Button>
+            ) : (
+              <span className="text-secondary small align-self-center">
+                {porukaZaZavrsenu(rad?.status)}
+              </span>
+            )}
+
+            {rad?.imaFajl ? (
+              <Button varijanta="outline" onClick={() => setPdfRad(rad)}>
+                Pročitaj rad (PDF)
+              </Button>
+            ) : (
+              <span className="text-secondary small align-self-center">
+                Autor nije priložio PDF
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (ucitava) {
     return (
       <div className="container py-4">
@@ -105,7 +213,9 @@ export default function Recenzije() {
     <div className="container py-4">
       <h2 className="mb-1">Radovi dodeljeni na recenziju</h2>
       <p className="text-secondary">
-        {ukupnoStavki === 0 ? 'Nemate dodeljenih radova.' : `Ukupno dodeljeno: ${ukupnoStavki}`}
+        {ukupnoStavki === 0
+          ? 'Nemate dodeljenih radova.'
+          : `Čeka vašu ocenu: ${zaOcenu.length} · završeno: ${zavrsene.length}`}
       </p>
 
       {obavestenje && (
@@ -122,99 +232,23 @@ export default function Recenzije() {
         </Poruka>
       )}
 
-      <div className="d-flex flex-column gap-3">
-        {podaci.map((stavka) => {
-          const rad = stavka.naucniRad
-          const istorija = stavka.stavke ?? []
+      {zaOcenu.length > 0 && (
+        <>
+          <h5 className="mt-4 mb-3">Čeka vašu ocenu ({zaOcenu.length})</h5>
+          <div className="d-flex flex-column gap-3">{zaOcenu.map(karticaRecenzije)}</div>
+        </>
+      )}
 
-          return (
-            <div className="card shadow-sm" key={stavka.id}>
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
-                  <h5 className="card-title mb-0">
-                    {rad?.status === OBJAVLJEN ? (
-                      <Link to={`/radovi/${rad.id}`} className="text-decoration-none">
-                        {rad.naslov}
-                      </Link>
-                    ) : (
-                      (rad?.naslov ?? 'Rad nije dostupan')
-                    )}
-                  </h5>
-                  <StatusBedz status={rad?.status} />
-                </div>
-
-                <p className="text-secondary small mb-2">
-                  <AutoriRada rad={rad} />
-                  {rad?.godina && <span className="ms-2">· {rad.godina}</span>}
-                  <span className="ms-2">· dodeljeno {formatirajDatum(stavka.datumDodele)}</span>
-                </p>
-
-                {rad?.abstrakt && <p className="card-text small">{rad.abstrakt}</p>}
-
-                {Array.isArray(rad?.oblasti) && rad.oblasti.length > 0 && (
-                  <div className="d-flex flex-wrap gap-1 mb-3">
-                    {rad.oblasti.map((oblast) => (
-                      <span key={oblast} className="badge bg-light text-dark border">
-                        {oblast}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {istorija.length > 0 && (
-                  <div className="border-top pt-3 mt-2">
-                    <h6 className="text-secondary small text-uppercase mb-2">
-                      Istorija ocena ({istorija.length})
-                    </h6>
-
-                    <ul className="list-unstyled mb-0">
-                      {istorija.map((ocenaIzIstorije) => (
-                        <li key={ocenaIzIstorije.id} className="mb-2">
-                          <div className="d-flex align-items-center gap-2 mb-1">
-                            <StatusBedz status={ocenaIzIstorije.status} />
-                            <span className="text-secondary small">
-                              {formatirajDatum(ocenaIzIstorije.datum)}
-                            </span>
-                          </div>
-                          <p className="small mb-0">{ocenaIzIstorije.komentar}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="mt-3 d-flex flex-wrap gap-2">
-                  {rad?.status === OBJAVLJEN ? (
-                    <span className="text-secondary small align-self-center">
-                      Recenzija je završena, rad je objavljen i više se ne ocenjuje.
-                    </span>
-                  ) : (
-                    <Button onClick={() => otvoriOcenjivanje(stavka)}>Oceni rad</Button>
-                  )}
-
-                  {rad?.imaFajl ? (
-                    <Button varijanta="outline" onClick={() => setPdfRad(rad)}>
-                      Pročitaj rad (PDF)
-                    </Button>
-                  ) : (
-                    <span className="text-secondary small align-self-center">
-                      Autor nije priložio PDF
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="mt-4">
-        <Pagination
-          trenutnaStrana={strana}
-          ukupnoStrana={ukupnoStrana}
-          naPromenu={promeniStranu}
-        />
-      </div>
+      {zavrsene.length > 0 && (
+        <>
+          <h5 className="mt-5 mb-1">Završene recenzije ({zavrsene.length})</h5>
+          <p className="text-secondary small">
+            Ovi radovi ne čekaju vašu odluku. Rad vraćen na doradu vratiće se gore kada ga autor
+            ponovo preda.
+          </p>
+          <div className="d-flex flex-column gap-3">{zavrsene.map(karticaRecenzije)}</div>
+        </>
+      )}
 
       <Modal
         naslov="Ocena rada"

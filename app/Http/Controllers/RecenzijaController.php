@@ -71,9 +71,10 @@ class RecenzijaController extends Controller
             ->where('ZapID', Auth::id())
             ->firstOrFail();
 
-        if ($recenzija->naucniRad->StatusID === Status::OBJAVLJEN) {
+        if ($recenzija->naucniRad->StatusID !== Status::CEKA_RECENZIJU) {
             return response()->json([
-                'message' => 'Rad je već objavljen pa se njegov status više ne može menjati.'
+                'message' => 'Ocenjuju se samo radovi koji čekaju recenziju. Ovaj rad je trenutno u statusu: '
+                    . $recenzija->naucniRad->status->Naziv . '.'
             ], 422);
         }
 
