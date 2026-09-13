@@ -24,7 +24,7 @@ class NaucniRadController extends Controller
     public function index(Request $request)
     {
 
-        $query = NaucniRad::with(['oblasti', 'status', 'autori']);
+        $query = NaucniRad::with(['oblasti', 'status', 'autori', 'recenzije.korisnik']);
 
        if ($request->has('pretraga')) {
         $pojam = $request->query('pretraga');
@@ -57,7 +57,7 @@ class NaucniRadController extends Controller
             'naslov'      => 'required|string|max:255',
             'abstrakt'    => 'required|string',
             'kljucneReci' => 'required|string',
-            'godina'      => 'required|integer',
+            'godina'      => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'oblasti'     => 'required|array|min:1',
             'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'nullable|array|max:2',
@@ -162,7 +162,7 @@ class NaucniRadController extends Controller
             'naslov'      => 'sometimes|string|max:255',
             'abstrakt'    => 'sometimes|string',
             'kljucneReci' => 'sometimes|string',
-            'godina'      => 'sometimes|integer',
+            'godina'      => 'sometimes|integer|min:1900|max:' . (date('Y') + 1),
             'StatusID'    => 'sometimes|in:' . Status::NACRT . ',' . Status::CEKA_RECENZIJU,
             'oblasti'     => 'array|min:1',
             'oblasti.*'   => 'exists:oblast,oblastId',
@@ -243,7 +243,7 @@ class NaucniRadController extends Controller
         $korisnik = Auth::user();
 
         $radovi = $korisnik->naucniRadovi()
-                        ->with(['oblasti', 'status'])
+                        ->with(['oblasti', 'status', 'autori', 'recenzije.korisnik'])
                         ->orderBy('godina', 'desc')
                         ->get();
 
@@ -526,7 +526,7 @@ class NaucniRadController extends Controller
             'naslov'      => 'required|string|max:255',
             'abstrakt'    => 'required|string',
             'kljucneReci' => 'required|string',
-            'godina'      => 'required|integer',
+            'godina'      => 'required|integer|min:1900|max:' . (date('Y') + 1),
             'fajl'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
 

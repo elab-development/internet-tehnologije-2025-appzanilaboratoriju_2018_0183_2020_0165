@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import usePaginatedFetch from '../../hooks/usePaginatedFetch'
 import Input from '../../components/Input/Input'
 import Button from '../../components/Button/Button'
@@ -74,7 +74,14 @@ export default function Istrazivaci() {
               <div className="col-12 col-md-6 col-lg-4" key={istrazivac.id}>
                 <div className="card h-100 shadow-sm">
                   <div className="card-body d-flex flex-column">
-                    <h5 className="card-title mb-1">{istrazivac.imePrezime}</h5>
+                    <h5 className="card-title mb-1">
+                      <Link
+                        to={`/istrazivaci/${istrazivac.id}`}
+                        className="text-decoration-none"
+                      >
+                        {istrazivac.imePrezime}
+                      </Link>
+                    </h5>
                     <p className="text-secondary small mb-2">
                       {istrazivac.brojObjavljenihRadova === 1
                         ? '1 objavljen rad'

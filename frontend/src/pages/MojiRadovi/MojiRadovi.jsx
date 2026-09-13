@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 import usePaginatedFetch from '../../hooks/usePaginatedFetch'
+import useAuth from '../../hooks/useAuth'
 import Modal from '../../components/Modal/Modal'
 import Input from '../../components/Input/Input'
 import Select from '../../components/Select/Select'
@@ -10,6 +12,7 @@ import Pagination from '../../components/Pagination/Pagination'
 import Poruka from '../../components/Poruka/Poruka'
 import Ucitavanje from '../../components/Ucitavanje/Ucitavanje'
 import PdfPregled from '../../components/PdfPregled/PdfPregled'
+import AutoriRada from '../../components/AutoriRada/AutoriRada'
 
 const PO_STRANI = 5
 
@@ -25,8 +28,12 @@ const PRAZNA_FORMA = {
 
 const NACRT = 'Nacrt'
 const OBJAVLJEN = 'Objavljen'
+const ODBIJEN = 'Odbijen'
+const CEKA_RECENZIJU = 'Čeka recenziju'
+const CEKA_RECENZIJU_ID = 2
 
 export default function MojiRadovi() {
+  const { korisnik } = useAuth()
   const [oblasti, setOblasti] = useState([])
   const [istrazivaci, setIstrazivaci] = useState([])
   const [obavestenje, setObavestenje] = useState(null)
@@ -58,7 +65,11 @@ export default function MojiRadovi() {
   }, [])
 
   const naslovForme = useMemo(() => {
-    if (radKojiSeMenja) return `Izmena nacrta — ${radKojiSeMenja.naslov}`
+    if (radKojiSeMenja) {
+      return radKojiSeMenja.status === ODBIJEN
+        ? `Ispravka odbijenog rada — ${radKojiSeMenja.naslov}`
+        : `Izmena nacrta — ${radKojiSeMenja.naslov}`
+    }
     if (radZaNovuVerziju) return `Nova verzija — ${radZaNovuVerziju.naslov}`
     return 'Novi naučni rad'
   }, [radKojiSeMenja, radZaNovuVerziju])
@@ -112,6 +123,12 @@ export default function MojiRadovi() {
     setFormaOtvorena(true)
   }
 
+  const moguciKoautori = useMemo(
+    () =>
+      istrazivaci.filter((i) => i.id !== korisnik?.ZapID && !forma.autori.includes(i.id)),
+    [istrazivaci, korisnik?.ZapID, forma.autori]
+  )
+
   const prebaciOblast = (idOblasti) => {
     setForma((prethodna) => ({
       ...prethodna,
@@ -159,11 +176,21 @@ export default function MojiRadovi() {
 
     try {
       if (radKojiSeMenja) {
+        const ponovnaPredaja = radKojiSeMenja.status === ODBIJEN
         const telo = napraviTeloZahteva()
         telo.append('_method', 'PUT')
 
+        if (ponovnaPredaja) {
+          telo.append('StatusID', CEKA_RECENZIJU_ID)
+        }
+
         await api.post(`/radovi/${radKojiSeMenja.id}`, telo)
-        setObavestenje({ vrsta: 'uspeh', tekst: 'Nacrt je izmenjen.' })
+        setObavestenje({
+          vrsta: 'uspeh',
+          tekst: ponovnaPredaja
+            ? 'Rad je ispravljen i ponovo poslat na recenziju.'
+            : 'Nacrt je izmenjen.',
+        })
       } else if (radZaNovuVerziju) {
         await api.post(`/radovi/${radZaNovuVerziju.id}/verzija`, napraviTeloZahteva())
         setObavestenje({
@@ -257,7 +284,15 @@ export default function MojiRadovi() {
                 <div className="card shadow-sm">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
-                      <h5 className="mb-0">{rad.naslov}</h5>
+                      <h5 className="mb-0">
+                        {rad.status === OBJAVLJEN ? (
+                          <Link to={`/radovi/${rad.id}`} className="text-decoration-none">
+                            {rad.naslov}
+                          </Link>
+                        ) : (
+                          rad.naslov
+                        )}
+                      </h5>
                       <div className="d-flex align-items-center gap-2">
                         {rad.verzija > 1 && (
                           <span className="badge bg-light text-dark border">
@@ -269,11 +304,27 @@ export default function MojiRadovi() {
                     </div>
 
                     <p className="text-secondary small mb-2">
-                      {Array.isArray(rad.autori) && rad.autori.length > 0
-                        ? rad.autori.join(', ')
-                        : 'Autori nisu navedeni'}
+                      <AutoriRada rad={rad} />
                       {rad.godina && <span className="ms-2">· {rad.godina}</span>}
                     </p>
+
+                    {rad.status === CEKA_RECENZIJU && (
+                      <p className="text-secondary small mb-2">
+                        {rad.recenzenti?.length > 0 ? (
+                          <>
+                            Recenzent:{' '}
+                            {rad.recenzenti.map((recenzent, indeks) => (
+                              <span key={recenzent.id}>
+                                {indeks > 0 && ', '}
+                                {recenzent.imePrezime}
+                              </span>
+                            ))}
+                          </>
+                        ) : (
+                          'Recenzent još nije dodeljen.'
+                        )}
+                      </p>
+                    )}
 
                     <p className="small mb-3">{rad.abstrakt}</p>
 
@@ -289,33 +340,23 @@ export default function MojiRadovi() {
 
                     <div className="d-flex flex-wrap gap-2">
                       {rad.status === NACRT && (
-                        <Button varijanta="outline" velicina="mala" onClick={() => otvoriIzmenu(rad)}>
-                          Izmeni nacrt
-                        </Button>
+                        <Button onClick={() => otvoriIzmenu(rad)}>Izmeni nacrt</Button>
+                      )}
+
+                      {rad.status === ODBIJEN && (
+                        <Button onClick={() => otvoriIzmenu(rad)}>Ispravi i predaj ponovo</Button>
                       )}
 
                       {rad.status === OBJAVLJEN && (
-                        <Button
-                          varijanta="outline"
-                          velicina="mala"
-                          onClick={() => otvoriNovuVerziju(rad)}
-                        >
-                          Nova verzija
-                        </Button>
+                        <Button onClick={() => otvoriNovuVerziju(rad)}>Nova verzija</Button>
                       )}
 
-                      <Button
-                        varijanta="outline"
-                        velicina="mala"
-                        onClick={() => prikaziVerzije(rad)}
-                      >
+                      <Button varijanta="outline" onClick={() => prikaziVerzije(rad)}>
                         Sve verzije
                       </Button>
 
                       {rad.imaFajl && (
                         <Button
-                          varijanta="outline"
-                          velicina="mala"
                           onClick={() => setPdfRad(rad)}
                         >
                           Pročitaj rad (PDF)
@@ -349,7 +390,11 @@ export default function MojiRadovi() {
               Odustani
             </Button>
             <Button ucitava={cuva} onClick={sacuvaj}>
-              {radKojiSeMenja ? 'Sačuvaj izmene' : 'Predaj rad'}
+              {radKojiSeMenja
+                ? radKojiSeMenja.status === ODBIJEN
+                  ? 'Sačuvaj i predaj ponovo'
+                  : 'Sačuvaj izmene'
+                : 'Predaj rad'}
             </Button>
           </>
         }
@@ -395,21 +440,26 @@ export default function MojiRadovi() {
             obavezno
           />
 
-          {!radKojiSeMenja && (
-            <div className="mb-3">
-              <label className="form-label" htmlFor="fajl">
-                Fajl rada (PDF, najviše 10 MB)
-              </label>
-              <input
-                id="fajl"
-                type="file"
-                accept="application/pdf"
-                className={`form-control ${greskeForme.fajl ? 'is-invalid' : ''}`}
-                onChange={(e) => setForma({ ...forma, fajl: e.target.files?.[0] ?? null })}
-              />
-              {greskeForme.fajl && <div className="invalid-feedback">{greskeForme.fajl}</div>}
-            </div>
-          )}
+          <div className="mb-3">
+            <label className="form-label" htmlFor="fajl">
+              Fajl rada (PDF, najviše 10 MB)
+            </label>
+            <input
+              id="fajl"
+              type="file"
+              accept="application/pdf"
+              className={`form-control ${greskeForme.fajl ? 'is-invalid' : ''}`}
+              onChange={(e) => setForma({ ...forma, fajl: e.target.files?.[0] ?? null })}
+            />
+            {greskeForme.fajl && <div className="invalid-feedback">{greskeForme.fajl}</div>}
+            {radKojiSeMenja && (
+              <div className="form-text">
+                {radKojiSeMenja.imaFajl
+                  ? `Trenutni fajl: ${radKojiSeMenja.imeFajla}. Ostavite prazno da ostane isti, ili izaberite novi da ga zamenite.`
+                  : 'Ovaj rad još nema priložen PDF.'}
+              </div>
+            )}
+          </div>
 
           <div className="mb-3">
             <span className="form-label d-block">
@@ -452,9 +502,8 @@ export default function MojiRadovi() {
                 vrednost=""
                 onChange={(e) => e.target.value && prebaciKoautora(Number(e.target.value))}
                 prazanTekst="Dodaj koautora..."
-                opcije={istrazivaci
-                  .filter((i) => !forma.autori.includes(i.id))
-                  .map((i) => ({ vrednost: i.id, tekst: i.imePrezime }))}
+                prazanKaoPlaceholder
+                opcije={moguciKoautori.map((i) => ({ vrednost: i.id, tekst: i.imePrezime }))}
                 onemoguceno={forma.autori.length >= 2}
               />
               <div className="d-flex flex-wrap gap-2">

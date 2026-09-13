@@ -6,13 +6,8 @@ import StatusBedz from '../../components/StatusBedz/StatusBedz'
 import Poruka from '../../components/Poruka/Poruka'
 import Ucitavanje from '../../components/Ucitavanje/Ucitavanje'
 import Button from '../../components/Button/Button'
+import AutoriRada from '../../components/AutoriRada/AutoriRada'
 import PdfPregled from '../../components/PdfPregled/PdfPregled'
-
-function prikaziAutore(rad) {
-  if (rad?.spoljniAutori) return rad.spoljniAutori
-  if (Array.isArray(rad?.autori) && rad.autori.length > 0) return rad.autori.join(', ')
-  return 'Autori nisu navedeni'
-}
 
 export default function RadDetalji() {
   const { id } = useParams()
@@ -139,7 +134,7 @@ export default function RadDetalji() {
               </div>
 
               <p className="text-secondary mb-3">
-                {prikaziAutore(rad)}
+                <AutoriRada rad={rad} linkovi />
                 {rad?.godina && <span className="ms-2">· {rad.godina}</span>}
               </p>
 

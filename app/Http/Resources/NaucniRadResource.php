@@ -19,7 +19,24 @@ class NaucniRadResource extends JsonResource
             'doi' => $this->DOI,
             'oblasti' => $this->oblasti->pluck('naziv'),
             'status' => $this->status->Naziv,
-            'autori' => $this->autori->pluck('ImePrezime'),
+            'autori' => $this->autori->map(function ($autor) {
+                return [
+                    'id'         => $autor->ZapID,
+                    'imePrezime' => $autor->ImePrezime,
+                ];
+            })->values(),
+            'recenzenti' => $this->whenLoaded('recenzije', function () {
+                return $this->recenzije
+                    ->filter(fn ($recenzija) => $recenzija->korisnik !== null)
+                    ->map(function ($recenzija) {
+                        return [
+                            'recenzijaId' => $recenzija->RecenzijaID,
+                            'id'          => $recenzija->korisnik->ZapID,
+                            'imePrezime'  => $recenzija->korisnik->ImePrezime,
+                        ];
+                    })
+                    ->values();
+            }),
             'spoljniAutori' => $this->spoljniAutori,
             'verzija' => $this->verzija,
             'grupaId' => $this->grupaId,

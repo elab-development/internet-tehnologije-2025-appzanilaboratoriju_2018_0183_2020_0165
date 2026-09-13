@@ -1,18 +1,8 @@
+import { Link } from 'react-router-dom'
 import StatusBedz from '../StatusBedz/StatusBedz'
 import Button from '../Button/Button'
+import AutoriRada from '../AutoriRada/AutoriRada'
 import './Card.css'
-
-function prikaziAutore(rad) {
-  if (rad.spoljniAutori) {
-    return rad.spoljniAutori
-  }
-
-  if (Array.isArray(rad.autori) && rad.autori.length > 0) {
-    return rad.autori.join(', ')
-  }
-
-  return 'Autori nisu navedeni'
-}
 
 export default function Card({ rad, onDetalji }) {
   if (!rad) {
@@ -23,12 +13,16 @@ export default function Card({ rad, onDetalji }) {
     <div className="card h-100 shadow-sm">
       <div className="card-body d-flex flex-column">
         <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
-          <h5 className="card-title mb-0">{rad.naslov}</h5>
+          <h5 className="card-title mb-0">
+            <Link to={`/radovi/${rad.id}`} className="text-decoration-none">
+              {rad.naslov}
+            </Link>
+          </h5>
           <StatusBedz status={rad.status} />
         </div>
 
         <p className="text-secondary small mb-2">
-          {prikaziAutore(rad)}
+          <AutoriRada rad={rad} />
           {rad.godina && <span className="ms-2">· {rad.godina}</span>}
         </p>
 

@@ -5,6 +5,7 @@ export default function Select({
   onChange,
   opcije = [],
   prazanTekst = null,
+  prazanKaoPlaceholder = false,
   greska = null,
   obavezno = false,
   onemoguceno = false,
@@ -30,7 +31,11 @@ export default function Select({
         required={obavezno}
         disabled={onemoguceno}
       >
-        {prazanTekst && <option value="">{prazanTekst}</option>}
+        {prazanTekst && (
+          <option value="" disabled={prazanKaoPlaceholder} hidden={prazanKaoPlaceholder}>
+            {prazanTekst}
+          </option>
+        )}
         {opcije.map((opcija) => (
           <option key={opcija.vrednost} value={opcija.vrednost}>
             {opcija.tekst}
