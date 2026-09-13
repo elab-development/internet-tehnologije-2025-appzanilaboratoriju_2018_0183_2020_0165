@@ -39,11 +39,6 @@ class RecenzijaController extends Controller
         return Recenzija::findOrFail($id);
     }
 
-    public function update(Request $request, string $id)
-    {
-
-    }
-
     public function dodeliRecenzenta(Request $request, string $id)
     {
         $rad = NaucniRad::with('autori', 'recenzije')->findOrFail($id);

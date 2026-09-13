@@ -30,11 +30,6 @@ class OblastController extends Controller
         return response()->json($oblast, 200);
     }
 
-    public function update(Request $request, string $id)
-    {
-
-    }
-
     public function destroy(string $id)
     {
         $oblast = Oblast::findOrFail($id);

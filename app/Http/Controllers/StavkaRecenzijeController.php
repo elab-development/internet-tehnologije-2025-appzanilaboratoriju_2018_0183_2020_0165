@@ -35,13 +35,4 @@ class StavkaRecenzijeController extends Controller
         return StavkaRecenzije::findOrFail($id);
     }
 
-    public function update(Request $request, string $id)
-    {
-
-    }
-
-    public function destroy(string $id)
-    {
-
-    }
 }

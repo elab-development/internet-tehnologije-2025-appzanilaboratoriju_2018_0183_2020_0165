@@ -22,11 +22,6 @@ class UserController extends Controller
         return UserResource::collection($users);
     }
 
-    public function create()
-    {
-
-    }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -52,11 +47,6 @@ class UserController extends Controller
     public function show(string $id)
     {
         return new UserResource(User::with('uloge')->findOrFail($id));
-    }
-
-    public function edit(string $id)
-    {
-
     }
 
     public function update(Request $request, string $id)
