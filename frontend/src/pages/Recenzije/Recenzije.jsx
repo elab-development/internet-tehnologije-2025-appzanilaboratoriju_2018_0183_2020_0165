@@ -43,6 +43,8 @@ export default function Recenzije() {
   const [cuva, setCuva] = useState(false)
   const [obavestenje, setObavestenje] = useState(null)
   const [pdfRad, setPdfRad] = useState(null)
+  const [verzijeRada, setVerzijeRada] = useState(null)
+  const [verzije, setVerzije] = useState([])
 
   const { sviPodaci, ucitava, greska, ukupnoStavki, osvezi } =
     usePaginatedFetch('/recenzije/moje', {}, PO_STRANI)
@@ -100,6 +102,18 @@ export default function Recenzije() {
       }
     } finally {
       setCuva(false)
+    }
+  }
+
+  const prikaziVerzije = async (rad) => {
+    setVerzijeRada(rad)
+    setVerzije([])
+
+    try {
+      const { data } = await api.get(`/radovi/${rad.id}/verzije`)
+      setVerzije(data?.verzije ?? [])
+    } catch {
+      setVerzije([])
     }
   }
 
@@ -193,6 +207,12 @@ export default function Recenzije() {
               <span className="text-secondary small align-self-center">
                 Autor nije priložio PDF
               </span>
+            )}
+
+            {rad && (
+              <Button varijanta="outline" onClick={() => prikaziVerzije(rad)}>
+                Sve verzije
+              </Button>
             )}
           </div>
         </div>
@@ -297,6 +317,40 @@ export default function Recenzije() {
         <Poruka vrsta="info" dodatneKlase="mb-0">
           Svaka ocena se čuva kao nova stavka recenzije. Ranije ocene se ne menjaju ni brišu.
         </Poruka>
+      </Modal>
+
+      <Modal
+        naslov={`Verzije rada — ${verzijeRada?.naslov ?? ''}`}
+        otvoren={Boolean(verzijeRada)}
+        naZatvaranje={() => setVerzijeRada(null)}
+        podnozje={
+          <Button varijanta="outline" onClick={() => setVerzijeRada(null)}>
+            Zatvori
+          </Button>
+        }
+      >
+        {verzije.length === 0 ? (
+          <Poruka vrsta="prazno" dodatneKlase="mb-0">
+            Ovaj rad ima samo jednu verziju.
+          </Poruka>
+        ) : (
+          <ul className="list-unstyled mb-0">
+            {verzije.map((verzija) => (
+              <li
+                key={verzija.id}
+                className="d-flex justify-content-between align-items-center border-bottom py-2"
+              >
+                <div>
+                  <span className="fw-semibold">verzija {verzija.verzija}</span>
+                  <div className="text-secondary small">
+                    {verzija.naslov} · {verzija.godina}
+                  </div>
+                </div>
+                <StatusBedz status={verzija.status} />
+              </li>
+            ))}
+          </ul>
+        )}
       </Modal>
 
       <PdfPregled rad={pdfRad} naZatvaranje={() => setPdfRad(null)} />

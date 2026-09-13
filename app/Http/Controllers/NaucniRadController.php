@@ -95,7 +95,7 @@ class NaucniRadController extends Controller
             unset($validatedData['fajl']);
 
             $naucniRad = NaucniRad::create(array_merge($validatedData, $podaciFajla, [
-                'StatusID' => Status::CEKA_RECENZIJU,
+                'StatusID' => Status::NACRT,
                 'grupaId'  => (int) NaucniRad::max('grupaId') + 1,
                 'verzija'  => 1,
             ]));
@@ -109,28 +109,13 @@ class NaucniRadController extends Controller
             $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? []));
             $naucniRad->autori()->attach($sviAutori);
 
-            $recenzent = User::whereHas('uloge', function($q) {
-                    $q->where('uloga.UlogaID', Uloga::RECENZENT);
-                })
-                ->whereNotIn('ZapID', $sviAutori)
-                ->inRandomOrder()
-                ->first();
-
-            if ($recenzent) {
-                Recenzija::create([
-                    'NRID'  => $naucniRad->NRID,
-                    'ZapID' => $recenzent->ZapID,
-                    'Datum' => now()
-                ]);
-            }
-
             return $naucniRad;
         });
 
         $naucniRad->load(['oblasti', 'status', 'autori']);
 
         return response()->json([
-            'poruka' => 'Rad uspešno dodat i dodeljen recenzentu.',
+            'poruka' => 'Rad je sačuvan kao nacrt. Pošaljite ga na recenziju kada bude gotov.',
             'podaci' => new NaucniRadResource($naucniRad)
         ], 201);
     }
@@ -243,6 +228,12 @@ class NaucniRadController extends Controller
             if ($request->has('reference')) {
                 $rad->citira()->sync(array_unique($request->reference));
             }
+
+            $poslatNaRecenziju = (int) ($izmene['StatusID'] ?? 0) === Status::CEKA_RECENZIJU;
+
+            if ($poslatNaRecenziju && !$rad->recenzije()->exists()) {
+                $this->dodeliSlucajnogRecenzenta($rad, $rad->autori()->pluck('korisnik.ZapID')->all());
+            }
         });
 
         if (!empty($podaciFajla) && $stariFajl) {
@@ -349,9 +340,12 @@ class NaucniRadController extends Controller
         }
 
         if ($request->has('keyword')) {
-        $s = $request->query('keyword');
+            $pojam = $request->query('keyword');
 
-        $query->where('kljucneReci', 'LIKE', '%' . $s . '%');
+            $query->where(function ($q) use ($pojam) {
+                $q->where('naslov', 'LIKE', '%' . $pojam . '%')
+                  ->orWhere('kljucneReci', 'LIKE', '%' . $pojam . '%');
+            });
         }
 
         $query->orderBy('godina', 'desc');
@@ -475,6 +469,26 @@ class NaucniRadController extends Controller
 
             throw $greska;
         }
+    }
+
+    private function dodeliSlucajnogRecenzenta(NaucniRad $rad, array $autori): ?Recenzija
+    {
+        $recenzent = User::whereHas('uloge', function ($q) {
+                $q->where('uloga.UlogaID', Uloga::RECENZENT);
+            })
+            ->whereNotIn('ZapID', $autori)
+            ->inRandomOrder()
+            ->first();
+
+        if (!$recenzent) {
+            return null;
+        }
+
+        return Recenzija::create([
+            'NRID'  => $rad->NRID,
+            'ZapID' => $recenzent->ZapID,
+            'Datum' => now(),
+        ]);
     }
 
     private function referenceSuObjavljene($reference): bool

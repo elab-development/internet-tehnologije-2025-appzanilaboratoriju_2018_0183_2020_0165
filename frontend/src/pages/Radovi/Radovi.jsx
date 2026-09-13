@@ -97,10 +97,10 @@ export default function Radovi() {
             <div className="col-12 col-lg-5">
               <Input
                 naziv="pretraga"
-                labela="Pretraga po ključnim rečima"
+                labela="Pretraga po naslovu i ključnim rečima"
                 vrednost={unetiPojam}
                 onChange={(e) => setUnetiPojam(e.target.value)}
-                placeholder="npr. machine learning"
+                placeholder="npr. neuronske mreže"
               />
             </div>
 

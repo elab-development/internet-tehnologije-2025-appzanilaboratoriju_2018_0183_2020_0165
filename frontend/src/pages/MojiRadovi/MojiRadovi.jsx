@@ -47,6 +47,8 @@ export default function MojiRadovi() {
   const [greskeForme, setGreskeForme] = useState({})
   const [cuva, setCuva] = useState(false)
 
+  const [recenzijeRada, setRecenzijeRada] = useState(null)
+  const [recenzije, setRecenzije] = useState(null)
   const [verzijeRada, setVerzijeRada] = useState(null)
   const [pdfRad, setPdfRad] = useState(null)
   const [verzije, setVerzije] = useState([])
@@ -228,7 +230,10 @@ export default function MojiRadovi() {
         })
       } else {
         await api.post('/radovi', napraviTeloZahteva())
-        setObavestenje({ vrsta: 'uspeh', tekst: 'Rad je predat i dodeljen recenzentu.' })
+        setObavestenje({
+          vrsta: 'uspeh',
+          tekst: 'Rad je sačuvan kao nacrt. Pošaljite ga na recenziju kada bude gotov.',
+        })
       }
 
       zatvoriFormu()
@@ -251,6 +256,42 @@ export default function MojiRadovi() {
       }
     } finally {
       setCuva(false)
+    }
+  }
+
+  const posaljiNaRecenziju = async (rad) => {
+    setCuva(true)
+
+    try {
+      const telo = new FormData()
+      telo.append('_method', 'PUT')
+      telo.append('StatusID', CEKA_RECENZIJU_ID)
+
+      await api.post(`/radovi/${rad.id}`, telo)
+      setObavestenje({ vrsta: 'uspeh', tekst: 'Rad je poslat na recenziju.' })
+      osvezi()
+    } catch (error) {
+      setObavestenje({
+        vrsta: 'greska',
+        tekst: error.response?.data?.message ?? 'Slanje rada na recenziju nije uspelo.',
+      })
+    } finally {
+      setCuva(false)
+    }
+  }
+
+  const prikaziRecenzije = async (rad) => {
+    setRecenzijeRada(rad)
+    setRecenzije(null)
+
+    try {
+      const { data } = await api.get(`/radovi/${rad.id}/recenzije`)
+      setRecenzije(data)
+    } catch (error) {
+      setRecenzije({
+        recenzije: [],
+        message: error.response?.data?.message ?? 'Recenzije nije moguće učitati.',
+      })
     }
   }
 
@@ -288,7 +329,7 @@ export default function MojiRadovi() {
           </p>
         </div>
 
-        <Button onClick={otvoriNoviRad}>Predaj novi rad</Button>
+        <Button onClick={otvoriNoviRad}>Novi rad</Button>
       </div>
 
       {obavestenje && (
@@ -369,7 +410,16 @@ export default function MojiRadovi() {
 
                     <div className="d-flex flex-wrap gap-2">
                       {rad.status === NACRT && (
-                        <Button onClick={() => otvoriIzmenu(rad)}>Izmeni nacrt</Button>
+                        <>
+                          <Button onClick={() => otvoriIzmenu(rad)}>Izmeni nacrt</Button>
+                          <Button
+                            varijanta="outline"
+                            ucitava={cuva}
+                            onClick={() => posaljiNaRecenziju(rad)}
+                          >
+                            Pošalji na recenziju
+                          </Button>
+                        </>
                       )}
 
                       {rad.status === ODBIJEN && (
@@ -379,6 +429,10 @@ export default function MojiRadovi() {
                       {rad.status === OBJAVLJEN && (
                         <Button onClick={() => otvoriNovuVerziju(rad)}>Nova verzija</Button>
                       )}
+
+                      <Button varijanta="outline" onClick={() => prikaziRecenzije(rad)}>
+                        Recenzije
+                      </Button>
 
                       <Button varijanta="outline" onClick={() => prikaziVerzije(rad)}>
                         Sve verzije
@@ -423,7 +477,7 @@ export default function MojiRadovi() {
                 ? radKojiSeMenja.status === ODBIJEN
                   ? 'Sačuvaj i predaj ponovo'
                   : 'Sačuvaj izmene'
-                : 'Predaj rad'}
+                : 'Sačuvaj nacrt'}
             </Button>
           </>
         }
@@ -521,9 +575,8 @@ export default function MojiRadovi() {
             )}
           </div>
 
-          {!radKojiSeMenja && (
-            <div className="mb-3">
-              <span className="form-label d-block">Koautori (najviše dva)</span>
+          <div className="mb-3">
+            <span className="form-label d-block">Koautori (najviše dva)</span>
               {greskeForme.autori && (
                 <div className="text-danger small mb-1">{greskeForme.autori}</div>
               )}
@@ -552,8 +605,12 @@ export default function MojiRadovi() {
                   )
                 })}
               </div>
-            </div>
-          )}
+            {radKojiSeMenja && (
+              <div className="form-text">
+                Ostavite neizabrano da koautori ostanu nepromenjeni.
+              </div>
+            )}
+          </div>
 
           <div className="mb-3">
             <span className="form-label d-block">Radovi koje ovaj rad citira</span>
@@ -590,6 +647,60 @@ export default function MojiRadovi() {
             <div className="form-text">Citirati se mogu samo objavljeni radovi.</div>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        naslov={`Recenzije rada — ${recenzijeRada?.naslov ?? ''}`}
+        otvoren={Boolean(recenzijeRada)}
+        naZatvaranje={() => setRecenzijeRada(null)}
+        velicina="veliko"
+        podnozje={
+          <Button varijanta="outline" onClick={() => setRecenzijeRada(null)}>
+            Zatvori
+          </Button>
+        }
+      >
+        {recenzije === null && <Ucitavanje tekst="Učitavanje recenzija..." visina="120px" />}
+
+        {recenzije !== null && (recenzije.recenzije ?? []).length === 0 && (
+          <Poruka vrsta="prazno" dodatneKlase="mb-0">
+            {recenzije.message ?? 'Za ovaj rad još nema urađenih recenzija.'}
+          </Poruka>
+        )}
+
+        {recenzije !== null &&
+          (recenzije.recenzije ?? []).map((recenzija) => (
+            <div className="border rounded p-3 mb-3" key={recenzija.id}>
+              <div className="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <span className="fw-semibold">{recenzija.recenzent}</span>
+                <span className="text-secondary small">
+                  dodeljeno {new Date(recenzija.datum).toLocaleDateString('sr-RS')}
+                </span>
+              </div>
+
+              {(recenzija.stavke ?? []).length === 0 ? (
+                <p className="text-secondary small mb-0">
+                  Recenzent još nije uneo ocenu.
+                </p>
+              ) : (
+                <ul className="list-unstyled mb-0">
+                  {recenzija.stavke.map((stavka) => (
+                    <li key={stavka.id} className="mb-2">
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <StatusBedz status={stavka.status} />
+                        {stavka.datum && (
+                          <span className="text-secondary small">
+                            {new Date(stavka.datum).toLocaleDateString('sr-RS')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="small mb-0">{stavka.komentar}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
       </Modal>
 
       <Modal
