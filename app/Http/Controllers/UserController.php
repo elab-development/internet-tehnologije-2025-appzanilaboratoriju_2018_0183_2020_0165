@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Uloga;
@@ -50,7 +51,7 @@ class UserController extends Controller
 
     public function show(string $id)
     {
-        return User::with('uloge')->findOrFail($id);
+        return new UserResource(User::with('uloge')->findOrFail($id));
     }
 
     public function edit(string $id)
@@ -64,6 +65,9 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'ImePrezime' => 'sometimes|string|max:255',
+            'email'      => ['sometimes', 'string', 'email', 'max:255',
+                             Rule::unique('korisnik', 'email')->ignore($user->ZapID, 'ZapID')],
+            'password'   => 'sometimes|string|min:6|confirmed',
             'Biografija' => 'nullable|string',
         ]);
 

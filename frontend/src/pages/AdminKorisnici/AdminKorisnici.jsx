@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import api from '../../api/axios'
 import usePaginatedFetch from '../../hooks/usePaginatedFetch'
 import useAuth from '../../hooks/useAuth'
@@ -43,6 +43,15 @@ export default function AdminKorisnici() {
   const [ulogeKorisnik, setUlogeKorisnik] = useState(null)
   const [izabraneUloge, setIzabraneUloge] = useState([])
 
+  const [izmenaKorisnik, setIzmenaKorisnik] = useState(null)
+  const [izmena, setIzmena] = useState({
+    ImePrezime: '',
+    email: '',
+    Biografija: '',
+    password: '',
+    password_confirmation: '',
+  })
+
   const [zaBrisanje, setZaBrisanje] = useState(null)
   const [brise, setBrise] = useState(false)
 
@@ -57,12 +66,18 @@ export default function AdminKorisnici() {
     return sviPodaci.filter((k) => k.uloge?.some((u) => String(u.id) === String(filterUloga)))
   }, [sviPodaci, filterUloga])
 
-  const zaPrikaz = useMemo(() => {
-    const pocetak = (strana - 1) * PO_STRANI
-    return filtrirani.slice(pocetak, pocetak + PO_STRANI)
-  }, [filtrirani, strana])
-
   const ukupnoStrana = Math.max(1, Math.ceil(filtrirani.length / PO_STRANI))
+
+  const trenutnaStrana = Math.min(strana, ukupnoStrana)
+
+  const zaPrikaz = useMemo(() => {
+    const pocetak = (trenutnaStrana - 1) * PO_STRANI
+    return filtrirani.slice(pocetak, pocetak + PO_STRANI)
+  }, [filtrirani, trenutnaStrana])
+
+  useEffect(() => {
+    promeniStranu(1)
+  }, [filterUloga, promeniStranu])
 
   const prebaciUloguNaFormi = (idUloge) => {
     setForma((prethodna) => ({
@@ -92,6 +107,71 @@ export default function AdminKorisnici() {
         setObavestenje({
           vrsta: 'greska',
           tekst: error.response?.data?.message ?? 'Kreiranje korisnika nije uspelo.',
+        })
+      }
+    } finally {
+      setCuva(false)
+    }
+  }
+
+  const otvoriIzmenu = async (korisnik) => {
+    setGreskeForme({})
+    setIzmenaKorisnik(korisnik)
+    setIzmena({
+      ImePrezime: korisnik.imePrezime ?? '',
+      email: korisnik.email ?? '',
+      Biografija: korisnik.biografija ?? '',
+      password: '',
+      password_confirmation: '',
+    })
+
+    try {
+      const { data } = await api.get(`/admin/korisnici/${korisnik.id}`)
+      const svez = data?.data ?? data?.podaci ?? data
+
+      setIzmena((prethodna) => ({
+        ...prethodna,
+        ImePrezime: svez.imePrezime ?? prethodna.ImePrezime,
+        email: svez.email ?? prethodna.email,
+        Biografija: svez.biografija ?? prethodna.Biografija,
+      }))
+    } catch {
+      setObavestenje({
+        vrsta: 'greska',
+        tekst: 'Nije moguće učitati sveže podatke korisnika, prikazani su podaci iz tabele.',
+      })
+    }
+  }
+
+  const sacuvajIzmenu = async () => {
+    setCuva(true)
+    setGreskeForme({})
+
+    try {
+      const telo = {
+        ImePrezime: izmena.ImePrezime,
+        email: izmena.email,
+        Biografija: izmena.Biografija,
+      }
+
+      if (izmena.password) {
+        telo.password = izmena.password
+        telo.password_confirmation = izmena.password_confirmation
+      }
+
+      await api.put(`/admin/korisnici/${izmenaKorisnik.id}`, telo)
+      setObavestenje({ vrsta: 'uspeh', tekst: 'Podaci korisnika su izmenjeni.' })
+      setIzmenaKorisnik(null)
+      osvezi()
+    } catch (error) {
+      const greske = error.response?.data?.errors
+
+      if (greske) {
+        setGreskeForme(Object.fromEntries(Object.entries(greske).map(([k, v]) => [k, v[0]])))
+      } else {
+        setObavestenje({
+          vrsta: 'greska',
+          tekst: error.response?.data?.message ?? 'Izmena korisnika nije uspela.',
         })
       }
     } finally {
@@ -215,6 +295,9 @@ export default function AdminKorisnici() {
                     </td>
                     <td className="text-end">
                       <div className="d-flex gap-2 justify-content-end flex-wrap">
+                        <Button varijanta="outline" velicina="mala" onClick={() => otvoriIzmenu(k)}>
+                          Izmeni
+                        </Button>
                         <Button varijanta="outline" velicina="mala" onClick={() => otvoriUloge(k)}>
                           Uloge
                         </Button>
@@ -236,7 +319,7 @@ export default function AdminKorisnici() {
 
           <div className="mt-3">
             <Pagination
-              trenutnaStrana={strana}
+              trenutnaStrana={trenutnaStrana}
               ukupnoStrana={ukupnoStrana}
               naPromenu={promeniStranu}
             />
@@ -332,6 +415,78 @@ export default function AdminKorisnici() {
             onChange={(e) => setForma({ ...forma, Biografija: e.target.value })}
           />
         </form>
+      </Modal>
+
+      <Modal
+        naslov={`Izmena korisnika — ${izmenaKorisnik?.imePrezime ?? ''}`}
+        otvoren={Boolean(izmenaKorisnik)}
+        naZatvaranje={() => (cuva ? null : setIzmenaKorisnik(null))}
+        zatvaranjeKlikomVan={!cuva}
+        podnozje={
+          <>
+            <Button
+              varijanta="outline"
+              onClick={() => setIzmenaKorisnik(null)}
+              onemoguceno={cuva}
+            >
+              Odustani
+            </Button>
+            <Button ucitava={cuva} onClick={sacuvajIzmenu}>
+              Sačuvaj
+            </Button>
+          </>
+        }
+      >
+        <Input
+          naziv="izmenaImePrezime"
+          labela="Ime i prezime"
+          vrednost={izmena.ImePrezime}
+          onChange={(e) => setIzmena({ ...izmena, ImePrezime: e.target.value })}
+          greska={greskeForme.ImePrezime}
+          obavezno
+        />
+
+        <Input
+          naziv="izmenaEmail"
+          labela="Email"
+          tip="email"
+          vrednost={izmena.email}
+          onChange={(e) => setIzmena({ ...izmena, email: e.target.value })}
+          greska={greskeForme.email}
+          obavezno
+        />
+
+        <Input
+          naziv="izmenaBiografija"
+          labela="Biografija"
+          tip="textarea"
+          vrednost={izmena.Biografija}
+          onChange={(e) => setIzmena({ ...izmena, Biografija: e.target.value })}
+          greska={greskeForme.Biografija}
+        />
+
+        <Input
+          naziv="izmenaPassword"
+          labela="Nova lozinka (ostavite prazno da ostane ista)"
+          tip="password"
+          vrednost={izmena.password}
+          onChange={(e) => setIzmena({ ...izmena, password: e.target.value })}
+          greska={greskeForme.password}
+        />
+
+        {izmena.password && (
+          <Input
+            naziv="izmenaPasswordPotvrda"
+            labela="Potvrda nove lozinke"
+            tip="password"
+            vrednost={izmena.password_confirmation}
+            onChange={(e) => setIzmena({ ...izmena, password_confirmation: e.target.value })}
+          />
+        )}
+
+        <Poruka vrsta="info" dodatneKlase="mb-0">
+          Uloge se menjaju posebno, dugmetom „Uloge".
+        </Poruka>
       </Modal>
 
       <Modal

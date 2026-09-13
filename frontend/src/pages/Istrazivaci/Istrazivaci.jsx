@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import usePaginatedFetch from '../../hooks/usePaginatedFetch'
 import Input from '../../components/Input/Input'
@@ -29,12 +29,18 @@ export default function Istrazivaci() {
     )
   }, [sviPodaci, pojam])
 
-  const zaPrikaz = useMemo(() => {
-    const pocetak = (strana - 1) * PO_STRANI
-    return filtrirani.slice(pocetak, pocetak + PO_STRANI)
-  }, [filtrirani, strana])
-
   const stranaUkupno = Math.max(1, Math.ceil(filtrirani.length / PO_STRANI))
+
+  const trenutnaStrana = Math.min(strana, stranaUkupno)
+
+  const zaPrikaz = useMemo(() => {
+    const pocetak = (trenutnaStrana - 1) * PO_STRANI
+    return filtrirani.slice(pocetak, pocetak + PO_STRANI)
+  }, [filtrirani, trenutnaStrana])
+
+  useEffect(() => {
+    promeniStranu(1)
+  }, [pojam, promeniStranu])
 
   return (
     <div className="container py-4">
@@ -109,7 +115,7 @@ export default function Istrazivaci() {
 
           <div className="mt-4">
             <Pagination
-              trenutnaStrana={strana}
+              trenutnaStrana={trenutnaStrana}
               ukupnoStrana={stranaUkupno}
               naPromenu={promeniStranu}
             />

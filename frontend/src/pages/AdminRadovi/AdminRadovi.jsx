@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import api from '../../api/axios'
 import usePaginatedFetch from '../../hooks/usePaginatedFetch'
 import Input from '../../components/Input/Input'
+import Select from '../../components/Select/Select'
+import Modal from '../../components/Modal/Modal'
 import Button from '../../components/Button/Button'
 import StatusBedz from '../../components/StatusBedz/StatusBedz'
 import Pagination from '../../components/Pagination/Pagination'
@@ -23,11 +25,26 @@ export default function AdminRadovi() {
   const [recenzijaZaBrisanje, setRecenzijaZaBrisanje] = useState(null)
   const [brise, setBrise] = useState(false)
   const [pdfRad, setPdfRad] = useState(null)
+  const [recenzenti, setRecenzenti] = useState([])
+  const [radZaDodelu, setRadZaDodelu] = useState(null)
+  const [izabraniRecenzent, setIzabraniRecenzent] = useState('')
+  const [dodeljuje, setDodeljuje] = useState(false)
+  const [greskaDodele, setGreskaDodele] = useState(null)
 
   useEffect(() => {
     const tajmer = setTimeout(() => setOdlozenaPretraga(pretraga), 400)
     return () => clearTimeout(tajmer)
   }, [pretraga])
+
+  useEffect(() => {
+    api
+      .get('/admin/korisnici')
+      .then(({ data }) => {
+        const svi = data?.data ?? data?.podaci ?? []
+        setRecenzenti(svi.filter((k) => k.uloge?.some((u) => u.naziv === 'Recenzent')))
+      })
+      .catch(() => setRecenzenti([]))
+  }, [])
 
   const { podaci, ucitava, greska, strana, ukupnoStrana, ukupnoStavki, promeniStranu, osvezi } =
     usePaginatedFetch('/radovi', odlozenaPretraga ? { pretraga: odlozenaPretraga } : {}, PO_STRANI)
@@ -47,6 +64,30 @@ export default function AdminRadovi() {
       })
     } finally {
       setBrise(false)
+    }
+  }
+
+  const otvoriDodelu = (rad) => {
+    setRadZaDodelu(rad)
+    setIzabraniRecenzent('')
+    setGreskaDodele(null)
+  }
+
+  const dodeliRecenzenta = async () => {
+    setDodeljuje(true)
+    setGreskaDodele(null)
+
+    try {
+      await api.post(`/radovi/${radZaDodelu.id}/recenzent`, {
+        recenzentId: Number(izabraniRecenzent),
+      })
+      setObavestenje({ vrsta: 'uspeh', tekst: 'Recenzent je dodeljen radu.' })
+      setRadZaDodelu(null)
+      osvezi()
+    } catch (error) {
+      setGreskaDodele(error.response?.data?.message ?? 'Dodela recenzenta nije uspela.')
+    } finally {
+      setDodeljuje(false)
     }
   }
 
@@ -154,6 +195,12 @@ export default function AdminRadovi() {
                           </Button>
                         )}
 
+                        {rad.status !== OBJAVLJEN && !(rad.recenzenti?.length > 0) && (
+                          <Button velicina="mala" onClick={() => otvoriDodelu(rad)}>
+                            Dodeli recenzenta
+                          </Button>
+                        )}
+
                         {rad.recenzenti?.length > 0 && (
                           <Button
                             varijanta="outline"
@@ -209,7 +256,7 @@ export default function AdminRadovi() {
       <PotvrdaBrisanja
         otvoren={recenzijaZaBrisanje !== null}
         naslov="Brisanje dodele recenzije"
-        poruka="Uklanja se dodela rada recenzentu, zajedno sa svim njegovim ocenama. Status rada ostaje nepromenjen."
+        poruka="Uklanja se dodela rada recenzentu, zajedno sa svim njegovim ocenama. Status rada ostaje nepromenjen, pa radu koji čeka recenziju treba dodeliti novog recenzenta."
         stavka={
           recenzijaZaBrisanje
             ? `${recenzijaZaBrisanje.recenzent}: ${recenzijaZaBrisanje.naslov}`
@@ -220,6 +267,48 @@ export default function AdminRadovi() {
         naPotvrdu={obrisiRecenziju}
         naOtkaz={() => setRecenzijaZaBrisanje(null)}
       />
+
+      <Modal
+        naslov={`Dodela recenzenta — ${radZaDodelu?.naslov ?? ''}`}
+        otvoren={radZaDodelu !== null}
+        naZatvaranje={() => (dodeljuje ? null : setRadZaDodelu(null))}
+        zatvaranjeKlikomVan={!dodeljuje}
+        podnozje={
+          <>
+            <Button
+              varijanta="outline"
+              onClick={() => setRadZaDodelu(null)}
+              onemoguceno={dodeljuje}
+            >
+              Odustani
+            </Button>
+            <Button
+              ucitava={dodeljuje}
+              onemoguceno={!izabraniRecenzent}
+              onClick={dodeliRecenzenta}
+            >
+              Dodeli
+            </Button>
+          </>
+        }
+      >
+        {greskaDodele && <Poruka vrsta="greska">{greskaDodele}</Poruka>}
+
+        <Select
+          naziv="recenzent"
+          labela="Recenzent"
+          vrednost={izabraniRecenzent}
+          onChange={(e) => setIzabraniRecenzent(e.target.value)}
+          prazanTekst="Izaberite recenzenta"
+          prazanKaoPlaceholder
+          opcije={recenzenti.map((r) => ({ vrednost: r.id, tekst: r.imePrezime }))}
+          obavezno
+        />
+
+        <Poruka vrsta="info" dodatneKlase="mb-0">
+          Autor rada ne može biti njegov recenzent. Dodela ne menja status rada.
+        </Poruka>
+      </Modal>
 
       <PdfPregled rad={pdfRad} naZatvaranje={() => setPdfRad(null)} />
     </div>

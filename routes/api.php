@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/korisnici/{id}', [UserController::class, 'destroy']);
         Route::get('/radovi', [NaucniRadController::class, 'index']);
         Route::delete('/radovi/{id}', [NaucniRadController::class, 'destroy']);
+        Route::post('/radovi/{id}/recenzent', [RecenzijaController::class, 'dodeliRecenzenta']);
         Route::delete('/recenzije/{id}', [RecenzijaController::class, 'destroy']);
         Route::get('/statistika/radovi-po-statusu', [StatistikaController::class, 'radoviPoStatusu']);
         Route::get('/statistika/radovi-po-godini', [StatistikaController::class, 'radoviPoGodini']);
