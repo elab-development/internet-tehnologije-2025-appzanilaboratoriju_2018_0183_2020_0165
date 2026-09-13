@@ -11,6 +11,7 @@ use App\Models\Recenzija;
 use App\Models\Status;
 use App\Models\IstorijaCitiranosti;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use App\Http\Resources\NaucniRadResource;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -54,7 +55,8 @@ class NaucniRadController extends Controller
     {
 
         $validatedData = $request->validate([
-            'naslov'      => 'required|string|max:255',
+            'naslov'      => ['required', 'string', 'max:255',
+                              Rule::unique('NaucniRad', 'naslov')->where('verzija', 1)],
             'abstrakt'    => 'required|string',
             'kljucneReci' => 'required|string',
             'godina'      => 'required|integer|min:1900|max:' . (date('Y') + 1),
@@ -64,7 +66,7 @@ class NaucniRadController extends Controller
             'autori.*'    => 'exists:korisnik,ZapID',
             'reference'   => 'nullable|array',
             'reference.*' => 'exists:NaucniRad,NRID',
-            'fajl'        => 'nullable|file|mimes:pdf|max:10240',
+            'fajl'        => 'required|file|mimes:pdf|max:10240',
         ]);
 
         if (!$this->referenceSuObjavljene($request->reference)) {
@@ -88,7 +90,7 @@ class NaucniRadController extends Controller
 
         $podaciFajla = $this->sacuvajFajl($request);
 
-        $naucniRad = DB::transaction(function () use ($request, $validatedData, $podaciFajla) {
+        $naucniRad = $this->uzTransakciju($podaciFajla, function () use ($request, $validatedData, $podaciFajla) {
 
             unset($validatedData['fajl']);
 
@@ -171,7 +173,10 @@ class NaucniRadController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'naslov'      => 'sometimes|string|max:255',
+            'naslov'      => ['sometimes', 'string', 'max:255',
+                              Rule::unique('NaucniRad', 'naslov')
+                                  ->where('verzija', $rad->verzija)
+                                  ->ignore($rad->NRID, 'NRID')],
             'abstrakt'    => 'sometimes|string',
             'kljucneReci' => 'sometimes|string',
             'godina'      => 'sometimes|integer|min:1900|max:' . (date('Y') + 1),
@@ -220,7 +225,7 @@ class NaucniRadController extends Controller
         $stariFajl = $rad->putanjaFajla;
         $podaciFajla = $this->sacuvajFajl($request);
 
-        DB::transaction(function () use ($request, $validator, $rad, $podaciFajla) {
+        $this->uzTransakciju($podaciFajla, function () use ($request, $validator, $rad, $podaciFajla) {
             $izmene = $validator->validated();
             unset($izmene['fajl']);
 
@@ -459,6 +464,19 @@ class NaucniRadController extends Controller
         ];
     }
 
+    private function uzTransakciju(array $podaciFajla, callable $posao)
+    {
+        try {
+            return DB::transaction($posao);
+        } catch (\Throwable $greska) {
+            if (!empty($podaciFajla['putanjaFajla'])) {
+                $this->obrisiFajl($podaciFajla['putanjaFajla']);
+            }
+
+            throw $greska;
+        }
+    }
+
     private function referenceSuObjavljene($reference): bool
     {
         if (empty($reference)) {
@@ -565,34 +583,72 @@ class NaucniRadController extends Controller
             ], 422);
         }
 
+        $brojNoveVerzije = (int) NaucniRad::where('grupaId', $stari->grupaId)->max('verzija') + 1;
+
         $validatedData = $request->validate([
-            'naslov'      => 'required|string|max:255',
+            'naslov'      => ['required', 'string', 'max:255',
+                              Rule::unique('NaucniRad', 'naslov')->where('verzija', $brojNoveVerzije)],
             'abstrakt'    => 'required|string',
             'kljucneReci' => 'required|string',
             'godina'      => 'required|integer|min:1900|max:' . (date('Y') + 1),
-            'fajl'        => 'nullable|file|mimes:pdf|max:10240',
+            'autori'      => 'nullable|array|max:2',
+            'autori.*'    => 'exists:korisnik,ZapID',
+            'reference'   => 'nullable|array',
+            'reference.*' => 'exists:NaucniRad,NRID',
+            'fajl'        => 'required|file|mimes:pdf|max:10240',
         ]);
+
+        if ($request->has('autori') && !empty($request->autori)) {
+            $validniIstrazivaciCount = User::whereIn('ZapID', $request->autori)
+                ->whereHas('uloge', function($q) {
+                    $q->where('uloga.UlogaID', Uloga::ISTRAZIVAC);
+                })->count();
+
+            if ($validniIstrazivaciCount !== count($request->autori)) {
+                return response()->json([
+                    'error' => 'Svi koautori moraju imati ulogu Istraživač.'
+                ], 422);
+            }
+        }
+
+        if (!$this->referenceSuObjavljene($request->reference)) {
+            return response()->json([
+                'error' => 'Rad može da citira samo objavljene radove.'
+            ], 422);
+        }
 
         $podaciFajla = $this->sacuvajFajl($request);
 
-        $nova = DB::transaction(function () use ($stari, $validatedData, $podaciFajla) {
+        $nova = $this->uzTransakciju($podaciFajla, function () use ($request, $stari, $validatedData, $podaciFajla, $brojNoveVerzije) {
 
-            unset($validatedData['fajl']);
+            unset($validatedData['fajl'], $validatedData['autori'], $validatedData['reference']);
 
             $nova = NaucniRad::create(array_merge($validatedData, $podaciFajla, [
                 'StatusID' => Status::CEKA_RECENZIJU,
                 'grupaId'  => $stari->grupaId,
-                'verzija'  => (int) NaucniRad::where('grupaId', $stari->grupaId)->max('verzija') + 1,
+                'verzija'  => $brojNoveVerzije,
             ]));
 
             $nova->oblasti()->attach($stari->oblasti->pluck('oblastId'));
-            $nova->autori()->attach($stari->autori->pluck('ZapID'));
-            $nova->citira()->attach($stari->citira->pluck('NRID'));
+
+            $autori = $request->has('autori')
+                ? array_unique(array_merge([Auth::id()], $request->autori ?? []))
+                : $stari->autori->pluck('ZapID')->all();
+
+            $nova->autori()->attach($autori);
+
+            $reference = $request->has('reference')
+                ? array_unique($request->reference ?? [])
+                : $stari->citira->pluck('NRID')->all();
+
+            if (!empty($reference)) {
+                $nova->citira()->attach($reference);
+            }
 
             $recenzent = User::whereHas('uloge', function ($q) {
                     $q->where('uloga.UlogaID', Uloga::RECENZENT);
                 })
-                ->whereNotIn('ZapID', $stari->autori->pluck('ZapID'))
+                ->whereNotIn('ZapID', $autori)
                 ->inRandomOrder()
                 ->first();
 

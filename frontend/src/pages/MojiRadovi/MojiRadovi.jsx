@@ -122,8 +122,10 @@ export default function MojiRadovi() {
       kljucneReci: rad.kljucneReci ?? '',
       godina: String(new Date().getFullYear()),
       oblasti: [],
-      autori: [],
-      reference: [],
+      autori: (rad.autori ?? [])
+        .map((autor) => autor.id)
+        .filter((id) => id !== korisnik?.ZapID),
+      reference: (rad.reference ?? []).map((citirani) => citirani.id),
       fajl: null,
     })
     setRadZaNovuVerziju(rad)
@@ -470,6 +472,7 @@ export default function MojiRadovi() {
           <div className="mb-3">
             <label className="form-label" htmlFor="fajl">
               Fajl rada (PDF, najviše 10 MB)
+              {!radKojiSeMenja && <span className="text-danger ms-1">*</span>}
             </label>
             <input
               id="fajl"
@@ -518,7 +521,7 @@ export default function MojiRadovi() {
             )}
           </div>
 
-          {!radKojiSeMenja && !radZaNovuVerziju && (
+          {!radKojiSeMenja && (
             <div className="mb-3">
               <span className="form-label d-block">Koautori (najviše dva)</span>
               {greskeForme.autori && (
@@ -552,45 +555,40 @@ export default function MojiRadovi() {
             </div>
           )}
 
-          {!radZaNovuVerziju && (
-            <div className="mb-3">
-              <span className="form-label d-block">Radovi koje ovaj rad citira</span>
-              {greskeForme.reference && (
-                <div className="text-danger small mb-1">{greskeForme.reference}</div>
-              )}
-              <Select
-                naziv="referenca"
-                vrednost=""
-                onChange={(e) => e.target.value && prebaciReferencu(Number(e.target.value))}
-                prazanTekst="Dodaj citirani rad..."
-                prazanKaoPlaceholder
-                opcije={moguceReference.map((r) => ({
-                  vrednost: r.id,
-                  tekst: `${r.naslov} (${r.godina})`,
-                }))}
-              />
-              <div className="d-flex flex-wrap gap-2">
-                {forma.reference.map((idCitiranog) => {
-                  const citirani = objavljeniRadovi.find((r) => r.id === idCitiranog)
-                  return (
-                    <span key={idCitiranog} className="badge bg-secondary">
-                      {citirani?.naslov ?? idCitiranog}
-                      <button
-                        type="button"
-                        className="btn-close btn-close-white ms-2"
-                        aria-label="Ukloni citirani rad"
-                        onClick={() => prebaciReferencu(idCitiranog)}
-                      ></button>
-                    </span>
-                  )
-                })}
-              </div>
-              <div className="form-text">
-                Citirati se mogu samo objavljeni radovi.
-                {radZaNovuVerziju ? '' : ' Nova verzija nasleđuje reference stare.'}
-              </div>
+          <div className="mb-3">
+            <span className="form-label d-block">Radovi koje ovaj rad citira</span>
+            {greskeForme.reference && (
+              <div className="text-danger small mb-1">{greskeForme.reference}</div>
+            )}
+            <Select
+              naziv="referenca"
+              vrednost=""
+              onChange={(e) => e.target.value && prebaciReferencu(Number(e.target.value))}
+              prazanTekst="Dodaj citirani rad..."
+              prazanKaoPlaceholder
+              opcije={moguceReference.map((r) => ({
+                vrednost: r.id,
+                tekst: `${r.naslov} (${r.godina})`,
+              }))}
+            />
+            <div className="d-flex flex-wrap gap-2">
+              {forma.reference.map((idCitiranog) => {
+                const citirani = objavljeniRadovi.find((r) => r.id === idCitiranog)
+                return (
+                  <span key={idCitiranog} className="badge bg-secondary">
+                    {citirani?.naslov ?? idCitiranog}
+                    <button
+                      type="button"
+                      className="btn-close btn-close-white ms-2"
+                      aria-label="Ukloni citirani rad"
+                      onClick={() => prebaciReferencu(idCitiranog)}
+                    ></button>
+                  </span>
+                )
+              })}
             </div>
-          )}
+            <div className="form-text">Citirati se mogu samo objavljeni radovi.</div>
+          </div>
         </form>
       </Modal>
 
