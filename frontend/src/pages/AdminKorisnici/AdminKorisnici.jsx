@@ -26,7 +26,7 @@ const PRAZNA_FORMA = {
   password: '',
   password_confirmation: '',
   Biografija: '',
-  uloga_id: String(ULOGE.ISTRAZIVAC),
+  uloge: [ULOGE.ISTRAZIVAC],
 }
 
 export default function AdminKorisnici() {
@@ -64,13 +64,22 @@ export default function AdminKorisnici() {
 
   const ukupnoStrana = Math.max(1, Math.ceil(filtrirani.length / PO_STRANI))
 
+  const prebaciUloguNaFormi = (idUloge) => {
+    setForma((prethodna) => ({
+      ...prethodna,
+      uloge: prethodna.uloge.includes(idUloge)
+        ? prethodna.uloge.filter((x) => x !== idUloge)
+        : [...prethodna.uloge, idUloge],
+    }))
+  }
+
   const sacuvajKorisnika = async (dogadjaj) => {
     dogadjaj.preventDefault()
     setCuva(true)
     setGreskeForme({})
 
     try {
-      await api.post('/admin/korisnici', { ...forma, uloga_id: Number(forma.uloga_id) })
+      await api.post('/admin/korisnici', forma)
       setFormaOtvorena(false)
       setForma(PRAZNA_FORMA)
       setObavestenje({ vrsta: 'uspeh', tekst: 'Korisnik je uspešno kreiran.' })
@@ -244,7 +253,12 @@ export default function AdminKorisnici() {
             <Button varijanta="outline" onClick={() => setFormaOtvorena(false)}>
               Odustani
             </Button>
-            <Button tip="submit" ucitava={cuva} onClick={sacuvajKorisnika}>
+            <Button
+              tip="submit"
+              ucitava={cuva}
+              onemoguceno={forma.uloge.length === 0}
+              onClick={sacuvajKorisnika}
+            >
               Sačuvaj
             </Button>
           </>
@@ -285,13 +299,31 @@ export default function AdminKorisnici() {
             onChange={(e) => setForma({ ...forma, password_confirmation: e.target.value })}
             obavezno
           />
-          <Select
-            naziv="uloga_id"
-            labela="Uloga"
-            vrednost={forma.uloga_id}
-            onChange={(e) => setForma({ ...forma, uloga_id: e.target.value })}
-            opcije={SVE_ULOGE.map((u) => ({ vrednost: u.id, tekst: u.naziv }))}
-          />
+          <div className="mb-3">
+            <span className="form-label d-block">
+              Uloge <span className="text-danger">*</span>
+            </span>
+            {greskeForme.uloge && (
+              <div className="text-danger small mb-1">{greskeForme.uloge}</div>
+            )}
+            {SVE_ULOGE.map((uloga) => (
+              <div className="form-check" key={uloga.id}>
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id={`nova-uloga-${uloga.id}`}
+                  checked={forma.uloge.includes(uloga.id)}
+                  onChange={() => prebaciUloguNaFormi(uloga.id)}
+                />
+                <label className="form-check-label" htmlFor={`nova-uloga-${uloga.id}`}>
+                  {uloga.naziv}
+                </label>
+              </div>
+            ))}
+            <div className="form-text">
+              Korisnik mora imati bar jednu ulogu. Ulogu bira pri prijavi.
+            </div>
+          </div>
           <Input
             naziv="Biografija"
             labela="Biografija"

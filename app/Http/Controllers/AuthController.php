@@ -19,7 +19,8 @@ class AuthController extends Controller
             'email' => 'required|string|unique:korisnik,email',
             'password' => 'required|string|min:6|confirmed',
             'Biografija' => 'nullable|string',
-            'uloga_id' => 'required|exists:uloga,UlogaID'
+            'uloge' => 'required|array|min:1|max:3',
+            'uloge.*' => 'exists:uloga,UlogaID',
         ]);
 
         $korisnik = DB::transaction(function () use ($fields) {
@@ -30,7 +31,12 @@ class AuthController extends Controller
                 'Biografija' => $fields['Biografija'] ?? null,
             ]);
 
-            $korisnik->uloge()->attach($fields['uloga_id'], ['Datum' => Carbon::now()]);
+            $uloge = [];
+            foreach (array_unique($fields['uloge']) as $idUloge) {
+                $uloge[$idUloge] = ['Datum' => Carbon::now()];
+            }
+
+            $korisnik->uloge()->attach($uloge);
 
             return $korisnik;
         });
