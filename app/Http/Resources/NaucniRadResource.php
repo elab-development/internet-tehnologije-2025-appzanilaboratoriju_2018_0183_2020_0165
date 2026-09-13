@@ -25,6 +25,15 @@ class NaucniRadResource extends JsonResource
                     'imePrezime' => $autor->ImePrezime,
                 ];
             })->values(),
+            'reference' => $this->whenLoaded('citira', function () {
+                return $this->citira->map(function ($citirani) {
+                    return [
+                        'id'     => $citirani->NRID,
+                        'naslov' => $citirani->naslov,
+                        'godina' => $citirani->godina,
+                    ];
+                })->values();
+            }),
             'recenzenti' => $this->whenLoaded('recenzije', function () {
                 return $this->recenzije
                     ->filter(fn ($recenzija) => $recenzija->korisnik !== null)

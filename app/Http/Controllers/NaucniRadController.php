@@ -62,8 +62,16 @@ class NaucniRadController extends Controller
             'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'nullable|array|max:2',
             'autori.*'    => 'exists:korisnik,ZapID',
+            'reference'   => 'nullable|array',
+            'reference.*' => 'exists:NaucniRad,NRID',
             'fajl'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
+
+        if (!$this->referenceSuObjavljene($request->reference)) {
+            return response()->json([
+                'error' => 'Rad može da citira samo objavljene radove.'
+            ], 422);
+        }
 
         if ($request->has('autori') && !empty($request->autori)) {
             $validniIstrazivaciCount = User::whereIn('ZapID', $request->autori)
@@ -91,6 +99,10 @@ class NaucniRadController extends Controller
             ]));
 
             $naucniRad->oblasti()->attach($request->oblasti);
+
+            if (!empty($request->reference)) {
+                $naucniRad->citira()->attach(array_unique($request->reference));
+            }
 
             $sviAutori = array_unique(array_merge([auth()->id()], $request->autori ?? []));
             $naucniRad->autori()->attach($sviAutori);
@@ -168,6 +180,8 @@ class NaucniRadController extends Controller
             'oblasti.*'   => 'exists:oblast,oblastId',
             'autori'      => 'array|max:2',
             'autori.*'    => 'exists:korisnik,ZapID',
+            'reference'   => 'array',
+            'reference.*' => 'exists:NaucniRad,NRID',
             'fajl'        => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
@@ -191,6 +205,18 @@ class NaucniRadController extends Controller
             }
         }
 
+        if (!$this->referenceSuObjavljene($request->reference)) {
+            return response()->json([
+                'error' => 'Rad može da citira samo objavljene radove.'
+            ], 422);
+        }
+
+        if (in_array((int) $id, array_map('intval', $request->reference ?? []), true)) {
+            return response()->json([
+                'error' => 'Rad ne može da citira sam sebe.'
+            ], 422);
+        }
+
         $stariFajl = $rad->putanjaFajla;
         $podaciFajla = $this->sacuvajFajl($request);
 
@@ -207,6 +233,10 @@ class NaucniRadController extends Controller
             if ($request->has('autori')) {
                 $sviAutori = array_unique(array_merge([Auth::id()], $request->autori));
                 $rad->autori()->sync($sviAutori);
+            }
+
+            if ($request->has('reference')) {
+                $rad->citira()->sync(array_unique($request->reference));
             }
         });
 
@@ -243,7 +273,7 @@ class NaucniRadController extends Controller
         $korisnik = Auth::user();
 
         $radovi = $korisnik->naucniRadovi()
-                        ->with(['oblasti', 'status', 'autori', 'recenzije.korisnik'])
+                        ->with(['oblasti', 'status', 'autori', 'recenzije.korisnik', 'citira'])
                         ->orderBy('godina', 'desc')
                         ->get();
 
@@ -429,6 +459,19 @@ class NaucniRadController extends Controller
         ];
     }
 
+    private function referenceSuObjavljene($reference): bool
+    {
+        if (empty($reference)) {
+            return true;
+        }
+
+        $idjevi = array_unique($reference);
+
+        return NaucniRad::whereIn('NRID', $idjevi)
+            ->where('StatusID', Status::OBJAVLJEN)
+            ->count() === count($idjevi);
+    }
+
     private function obrisiFajl(string $putanja): void
     {
         if (Storage::disk('local')->exists($putanja)) {
@@ -510,7 +553,7 @@ class NaucniRadController extends Controller
 
     public function novaVerzija(Request $request, string $id)
     {
-        $stari = NaucniRad::with('autori', 'oblasti')->findOrFail($id);
+        $stari = NaucniRad::with('autori', 'oblasti', 'citira')->findOrFail($id);
 
         if (!$stari->autori->contains('ZapID', Auth::id())) {
             return response()->json(['message' => 'Niste autor ovog rada.'], 403);
@@ -544,6 +587,7 @@ class NaucniRadController extends Controller
 
             $nova->oblasti()->attach($stari->oblasti->pluck('oblastId'));
             $nova->autori()->attach($stari->autori->pluck('ZapID'));
+            $nova->citira()->attach($stari->citira->pluck('NRID'));
 
             $recenzent = User::whereHas('uloge', function ($q) {
                     $q->where('uloga.UlogaID', Uloga::RECENZENT);

@@ -23,6 +23,7 @@ const PRAZNA_FORMA = {
   godina: String(new Date().getFullYear()),
   oblasti: [],
   autori: [],
+  reference: [],
   fajl: null,
 }
 
@@ -36,6 +37,7 @@ export default function MojiRadovi() {
   const { korisnik } = useAuth()
   const [oblasti, setOblasti] = useState([])
   const [istrazivaci, setIstrazivaci] = useState([])
+  const [objavljeniRadovi, setObjavljeniRadovi] = useState([])
   const [obavestenje, setObavestenje] = useState(null)
 
   const [forma, setForma] = useState(PRAZNA_FORMA)
@@ -62,6 +64,11 @@ export default function MojiRadovi() {
       .get('/istrazivaci')
       .then(({ data }) => setIstrazivaci(data?.podaci ?? []))
       .catch(() => setIstrazivaci([]))
+
+    api
+      .get('/radovi/objavljeni')
+      .then(({ data }) => setObjavljeniRadovi(data?.data ?? data?.podaci ?? []))
+      .catch(() => setObjavljeniRadovi([]))
   }, [])
 
   const naslovForme = useMemo(() => {
@@ -99,6 +106,7 @@ export default function MojiRadovi() {
       godina: String(rad.godina ?? new Date().getFullYear()),
       oblasti: [],
       autori: [],
+      reference: (rad.reference ?? []).map((citirani) => citirani.id),
       fajl: null,
     })
     setRadKojiSeMenja(rad)
@@ -115,6 +123,7 @@ export default function MojiRadovi() {
       godina: String(new Date().getFullYear()),
       oblasti: [],
       autori: [],
+      reference: [],
       fajl: null,
     })
     setRadZaNovuVerziju(rad)
@@ -129,12 +138,29 @@ export default function MojiRadovi() {
     [istrazivaci, korisnik?.ZapID, forma.autori]
   )
 
+  const moguceReference = useMemo(
+    () =>
+      objavljeniRadovi.filter(
+        (r) => r.id !== radKojiSeMenja?.id && !forma.reference.includes(r.id)
+      ),
+    [objavljeniRadovi, radKojiSeMenja?.id, forma.reference]
+  )
+
   const prebaciOblast = (idOblasti) => {
     setForma((prethodna) => ({
       ...prethodna,
       oblasti: prethodna.oblasti.includes(idOblasti)
         ? prethodna.oblasti.filter((x) => x !== idOblasti)
         : [...prethodna.oblasti, idOblasti],
+    }))
+  }
+
+  const prebaciReferencu = (idRada) => {
+    setForma((prethodna) => ({
+      ...prethodna,
+      reference: prethodna.reference.includes(idRada)
+        ? prethodna.reference.filter((x) => x !== idRada)
+        : [...prethodna.reference, idRada],
     }))
   }
 
@@ -161,6 +187,7 @@ export default function MojiRadovi() {
 
     forma.oblasti.forEach((id) => telo.append('oblasti[]', id))
     forma.autori.forEach((id) => telo.append('autori[]', id))
+    forma.reference.forEach((id) => telo.append('reference[]', id))
 
     if (forma.fajl) {
       telo.append('fajl', forma.fajl)
@@ -521,6 +548,46 @@ export default function MojiRadovi() {
                     </span>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {!radZaNovuVerziju && (
+            <div className="mb-3">
+              <span className="form-label d-block">Radovi koje ovaj rad citira</span>
+              {greskeForme.reference && (
+                <div className="text-danger small mb-1">{greskeForme.reference}</div>
+              )}
+              <Select
+                naziv="referenca"
+                vrednost=""
+                onChange={(e) => e.target.value && prebaciReferencu(Number(e.target.value))}
+                prazanTekst="Dodaj citirani rad..."
+                prazanKaoPlaceholder
+                opcije={moguceReference.map((r) => ({
+                  vrednost: r.id,
+                  tekst: `${r.naslov} (${r.godina})`,
+                }))}
+              />
+              <div className="d-flex flex-wrap gap-2">
+                {forma.reference.map((idCitiranog) => {
+                  const citirani = objavljeniRadovi.find((r) => r.id === idCitiranog)
+                  return (
+                    <span key={idCitiranog} className="badge bg-secondary">
+                      {citirani?.naslov ?? idCitiranog}
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white ms-2"
+                        aria-label="Ukloni citirani rad"
+                        onClick={() => prebaciReferencu(idCitiranog)}
+                      ></button>
+                    </span>
+                  )
+                })}
+              </div>
+              <div className="form-text">
+                Citirati se mogu samo objavljeni radovi.
+                {radZaNovuVerziju ? '' : ' Nova verzija nasleđuje reference stare.'}
               </div>
             </div>
           )}
